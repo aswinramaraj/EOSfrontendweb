@@ -68,7 +68,7 @@ export default function LoginPage() {
             </span>
             <span className="flex items-center gap-1.5">
               <EnvelopeIcon className="h-4 w-4" />
-              erp@srec.ac.in
+              erp@sece.ac.in
             </span>
           </div>
         </div>
