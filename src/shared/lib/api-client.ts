@@ -25,6 +25,15 @@ interface ApiErrorEnvelope {
   message: string | string[];
 }
 
+async function throwApiError(res: Response): Promise<never> {
+  const body = await res.json().catch(() => null);
+  const err = body as ApiErrorEnvelope | null;
+  const message = Array.isArray(err?.message)
+    ? err.message.join(", ")
+    : (err?.message ?? "Something went wrong. Please try again.");
+  throw new ApiError(message, res.status, err?.errorCode ?? "UNKNOWN_ERROR");
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -39,17 +48,42 @@ async function request<T>(
     },
   });
 
+  if (!res.ok) await throwApiError(res);
+
   const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const err = body as ApiErrorEnvelope | null;
-    const message = Array.isArray(err?.message)
-      ? err.message.join(", ")
-      : (err?.message ?? "Something went wrong. Please try again.");
-    throw new ApiError(message, res.status, err?.errorCode ?? "UNKNOWN_ERROR");
-  }
-
   return (body as ApiEnvelope<T>).data;
+}
+
+export interface BlobResponse {
+  blob: Blob;
+  filename: string | null;
+}
+
+function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null;
+  const match = /filename="?([^";]+)"?/i.exec(header);
+  return match ? match[1] : null;
+}
+
+async function downloadBlob(
+  path: string,
+  token?: string | null,
+): Promise<BlobResponse> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  // The backend still returns a JSON error envelope on failure even when a
+  // binary format was requested — this check must happen before res.blob(),
+  // or a failed download silently saves a JSON error body as a .pdf/.xlsx.
+  if (!res.ok) await throwApiError(res);
+
+  const blob = await res.blob();
+  const filename = parseContentDispositionFilename(
+    res.headers.get("Content-Disposition"),
+  );
+  return { blob, filename };
 }
 
 export const apiClient = {
@@ -61,4 +95,13 @@ export const apiClient = {
       { method: "POST", body: body ? JSON.stringify(body) : undefined },
       token,
     ),
+  patch: <T>(path: string, body?: unknown, token?: string | null) =>
+    request<T>(
+      path,
+      { method: "PATCH", body: body ? JSON.stringify(body) : undefined },
+      token,
+    ),
+  delete: <T>(path: string, token?: string | null) =>
+    request<T>(path, { method: "DELETE" }, token),
+  downloadBlob,
 };

@@ -7,6 +7,12 @@ import { tokenStorage } from "@/shared/lib/token-storage";
 import { authService } from "../services/auth.service";
 import type { QuickRole, Role } from "../types";
 
+// Where each role lands after login. Roles with no entry fall back to "/".
+const ROLE_HOME: Partial<Record<Role, string>> = {
+  admin: "/admin",
+  library: "/library",
+};
+
 // The backend's /auth/login has no role parameter — it returns whatever role
 // is on the account. "Login as X" is a client-side shortcut only; if it
 // doesn't match the account's real role, we reject after the fact instead of
@@ -45,7 +51,7 @@ export function useLogin() {
       }
 
       tokenStorage.set(result.accessToken, result.user);
-      router.push(result.user.role === "admin" ? "/admin" : "/");
+      router.push(ROLE_HOME[result.user.role] ?? "/");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

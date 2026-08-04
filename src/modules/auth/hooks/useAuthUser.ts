@@ -6,7 +6,14 @@ import type { AuthUser } from "../types";
 
 function subscribe(callback: () => void) {
   window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
+  // "storage" only fires in OTHER tabs; tokenStorage.subscribe covers a
+  // same-tab set()/clear() (e.g. a 401-triggered logout) that "storage"
+  // would otherwise never surface here.
+  const unsubscribeSameTab = tokenStorage.subscribe(callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    unsubscribeSameTab();
+  };
 }
 
 function getServerSnapshot(): AuthUser | null | undefined {
