@@ -303,3 +303,35 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function BuildingIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <rect x="4" y="3" width="16" height="18" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 8h.01M12 8h.01M15 8h.01M9 12h.01M12 12h.01M15 12h.01M9 16h.01M15 16h.01"
+        stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M10 21v-4h4v4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function BedIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M3 18v-6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v3" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M12 15h7a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M3 21v-3M21 21v-3M3 18h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="6.5" cy="11.5" r="1.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function WalletIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M15 13.5h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}

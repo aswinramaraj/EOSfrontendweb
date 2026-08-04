@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalNumber, optionalText } from "./field-helpers";
+import { optionalNumber, optionalText } from "@/shared/lib/zod-helpers";
 
 // The backend's own DTO treats every field as optional (a PATCH can touch
 // just one setting) — but the form always loads pre-filled with the current
