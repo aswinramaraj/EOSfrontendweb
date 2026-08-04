@@ -1,8 +1,87 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #101828;
+
+  /* Primary ramp */
+  --c-primary-50: #eff6ff;
+  --c-primary-100: #dbeafe;
+  --c-primary-200: #bfdbfe;
+  --c-primary-500: #3b82f6;
+  --c-primary-600: #2563eb;
+  --c-primary-700: #1d4ed8;
+
+  /* Neutral ramp (cool-tuned) */
+  --c-gray-25: #fcfcfd;
+  --c-gray-50: #f8fafc;
+  --c-gray-100: #f1f5f9;
+  --c-gray-200: #e6ebf1;
+  --c-gray-300: #d4dce6;
+  --c-gray-400: #97a3b6;
+  --c-gray-500: #667085;
+  --c-gray-600: #4b5768;
+  --c-gray-700: #344054;
+  --c-gray-800: #1d2939;
+  --c-gray-900: #101828;
+
+  /* Semantic (50 / 200 / 600 / 700) */
+  --c-success-50: #ecfdf3;
+  --c-success-600: #079455;
+  --c-success-700: #067647;
+  --c-warning-50: #fffaeb;
+  --c-warning-600: #dc6803;
+  --c-warning-700: #b54708;
+  --c-danger-50: #fef3f2;
+  --c-danger-600: #d92d20;
+  --c-danger-700: #b42318;
+
+  /* Data ramp: strength, not tone */
+  --data-strong: var(--c-primary-600);
+  --data-mid: #60a5fa;
+  --data-weak: var(--c-primary-200);
+  --data-muted: var(--c-gray-300);
+
+  --surface-header: #f9fbff;
+  --border-subtle: var(--c-gray-200);
+  --border-default: var(--c-gray-300);
+
+  --text-primary: var(--c-gray-900);
+  --text-secondary: var(--c-gray-600);
+  --text-tertiary: var(--c-gray-500);
+
+  /* Type scale */
+  --fs-2xs: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.875rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --tracking-tight: -0.011em;
+
+  /* Spacing (4px base) */
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+
+  /* Radii */
+  --r-md: 8px;
+  --r-xl: 14px;
+  --r-full: 999px;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+
+  /* Shell */
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 68px;
+  --topbar-h: 60px;
+  --content-max: 1720px;
+  --c-white: #ffffff;
+  --border-header: #e3ecf9;
 }
 
 @theme inline {
@@ -12,17 +91,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes header-glow-sweep {
@@ -46,4 +119,34 @@ body {
 
 .animate-header-glow {
   animation: header-glow-sweep 5s ease-in-out infinite;
+}
+
+@keyframes finance-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.finance-fade-in {
+  animation: finance-fade-in 0.35s ease-out both;
+}
+
+@keyframes finance-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.finance-slide-up {
+  animation: finance-slide-up 0.4s ease-out both;
 }
