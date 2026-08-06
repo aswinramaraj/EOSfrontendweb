@@ -26,6 +26,8 @@ export interface AuthUser {
   email: string;
   role: Role;
   roleId: number;
+  /** Only present for `coe` accounts — grants publish/withdraw-tier actions in the examination module. */
+  isSeniorCoe?: boolean;
 }
 
 export interface LoginResult {
