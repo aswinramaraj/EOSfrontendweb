@@ -29,12 +29,22 @@ export function FeeConcessionsPanel({ feeStructureId, onDataChanged }: FeeConces
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Scoped to this student's own fee structure — GET
+  // /fee-structures/:id/concessions — never the global GET /fee-concessions
+  // list (that endpoint is untouched; it isn't used anywhere in this panel).
   function fetchList() {
+    if (feeStructureId === null) {
+      setItems([]);
+      setIsLoading(false);
+      setLoadError(null);
+      return Promise.resolve();
+    }
+
     setIsLoading(true);
     setLoadError(null);
 
     return feeConcessionsService
-      .list()
+      .listByFeeStructure(feeStructureId)
       .then((data) => setItems(data))
       .catch((err: unknown) => {
         setLoadError(err instanceof ApiError ? err.message : "Failed to load fee concessions.");
@@ -44,7 +54,8 @@ export function FeeConcessionsPanel({ feeStructureId, onDataChanged }: FeeConces
 
   useEffect(() => {
     fetchList();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feeStructureId]);
 
   function handleSubmit(values: FeeConcessionFormValues) {
     if (dialog?.mode === "edit") {

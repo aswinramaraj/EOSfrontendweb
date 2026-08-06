@@ -46,12 +46,16 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
   const [isDeletingPayment, setIsDeletingPayment] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  function fetchPayments() {
+  // Scoped to this student's active demand mapping — GET
+  // /student-fee-demand-mappings/:id/payments — never the global
+  // GET /fee-payments admin list (that endpoint is untouched and still
+  // powers the global Fee Payments CRUD screen elsewhere).
+  function fetchPayments(demandMappingId: number) {
     setIsLoadingPayments(true);
     setLoadPaymentsError(null);
 
     return feePaymentsService
-      .list()
+      .listByDemandMapping(demandMappingId)
       .then((data) => setPayments(data))
       .catch((err: unknown) => {
         setLoadPaymentsError(err instanceof ApiError ? err.message : "Failed to load payments.");
@@ -60,13 +64,24 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
   }
 
   // Single source of truth for re-fetching this student's workspace snapshot
-  // (fee_summary, demand_summary, payment_summary, student_profile). Called
-  // after every successful finance write so every section reflects the
-  // latest database values instead of the stale snapshot from mount.
+  // (fee_summary, demand_summary, payment_summary, student_profile) AND this
+  // student's own scoped Payment History. Called after every successful
+  // finance write so every section reflects the latest database values
+  // instead of a stale snapshot from mount.
   function refreshWorkspace() {
     return studentWorkspaceService
       .get(Number(studentId))
-      .then((data) => setWorkspace(data))
+      .then((data) => {
+        setWorkspace(data);
+
+        const activeMappingId = data.demandSummary[0]?.studentFeeDemandMappingId;
+        if (activeMappingId !== undefined) {
+          return fetchPayments(activeMappingId);
+        }
+
+        setPayments([]);
+        setIsLoadingPayments(false);
+      })
       .catch((err: unknown) => {
         setLoadWorkspaceError(err instanceof ApiError ? err.message : "Failed to load student workspace.");
       });
@@ -77,8 +92,6 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
     setLoadWorkspaceError(null);
 
     refreshWorkspace().finally(() => setIsLoadingWorkspace(false));
-
-    fetchPayments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId]);
 
@@ -91,7 +104,7 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
         .update(paymentDialog.payment.id, values)
         .then(() => {
           setPaymentDialog(null);
-          return Promise.all([fetchPayments(), refreshWorkspace()]);
+          return refreshWorkspace();
         })
         .catch((err: unknown) => {
           setFormError(err instanceof ApiError ? err.message : "Failed to update payment.");
@@ -112,7 +125,7 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
       .create(demandMappingId, values)
       .then(() => {
         setPaymentDialog(null);
-        return Promise.all([fetchPayments(), refreshWorkspace()]);
+        return refreshWorkspace();
       })
       .catch((err: unknown) => {
         setFormError(err instanceof ApiError ? err.message : "Failed to create payment.");
@@ -130,7 +143,7 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
       .remove(paymentDialog.payment.id)
       .then(() => {
         setPaymentDialog(null);
-        return Promise.all([fetchPayments(), refreshWorkspace()]);
+        return refreshWorkspace();
       })
       .catch((err: unknown) => {
         setDeleteError(err instanceof ApiError ? err.message : "Failed to delete payment.");
@@ -202,10 +215,11 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
           paymentSummary={paymentSummary}
           outstandingAmount={feeSummary.totalOutstanding}
           onReceivePayment={() => setPaymentDialog({ mode: "create" })}
+          onPrintReceipt={() => setActiveTab("payment-history")}
         />
       ) : activeTab === "demand-details" ? (
         <div className="max-w-2xl">
-          <DemandSummaryCard items={demandSummary} />
+          <DemandSummaryCard items={demandSummary} feeSummary={feeSummary} />
         </div>
       ) : activeTab === "payment-history" ? (
         isLoadingPayments ? (
@@ -215,6 +229,14 @@ export function StudentWorkspace({ studentId, onClose }: StudentWorkspaceProps) 
         ) : (
           <FeePaymentsList
             payments={payments}
+            student={{
+              name: profile.name,
+              registerNumber: profile.registerNumber,
+              rollNo: profile.rollNo,
+              programme: profile.programme,
+              academicYear: firstMapping?.academicYear ?? "—",
+              semester: firstMapping?.semester ?? "—",
+            }}
             onAdd={() => setPaymentDialog({ mode: "create" })}
             onEdit={(payment) => setPaymentDialog({ mode: "edit", payment })}
             onDelete={(payment) => setPaymentDialog({ mode: "delete", payment })}

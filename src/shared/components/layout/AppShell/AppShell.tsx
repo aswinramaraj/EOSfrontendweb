@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { Sidebar } from "../Sidebar/Sidebar";
 import { Topbar } from "../Topbar/Topbar";
 
@@ -9,7 +9,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar collapsed={collapsed} />
+      {/* Sidebar reads the `tab` query param (useSearchParams) to highlight
+          the active Fees & Finance sub-row — needs a Suspense boundary. */}
+      <Suspense fallback={null}>
+        <Sidebar collapsed={collapsed} />
+      </Suspense>
       <main className="flex min-h-screen flex-1 flex-col">
         <Topbar onToggleSidebar={() => setCollapsed((v) => !v)} />
         {children}

@@ -23,21 +23,6 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
         <Icon name="sidebar" size={18} />
       </button>
 
-      <button
-        type="button"
-        className="flex h-9 flex-1 max-w-md items-center gap-2 rounded-[var(--r-md)] border px-3 text-left text-[13px] text-[var(--text-tertiary)] hover:bg-[var(--c-gray-50)]"
-        style={{ borderColor: "var(--border-default)" }}
-      >
-        <Icon name="search" size={16} />
-        <span className="flex-1 truncate">Search students, courses, actions...</span>
-        <span
-          className="rounded-[6px] border px-1.5 py-0.5 text-[11px] font-medium"
-          style={{ borderColor: "var(--border-default)", color: "var(--text-tertiary)" }}
-        >
-          Ctrl K
-        </span>
-      </button>
-
       <div className="ml-auto flex items-center gap-2">
         <span
           className="hidden items-center rounded-[6px] px-2 py-1 text-[12px] font-medium sm:inline-flex"

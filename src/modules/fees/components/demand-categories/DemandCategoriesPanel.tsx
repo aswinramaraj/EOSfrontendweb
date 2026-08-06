@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { PlusIcon } from "@/shared/components/icons";
 import { ApiError } from "@/shared/lib/api-client";
+import { PanelSection } from "../PanelSection";
+import { LoadingState } from "../fee-payments/LoadingState";
 import { demandCategoriesService } from "../../services/demand-categories.service";
 import { DemandCategoriesTable } from "./DemandCategoriesTable";
 import { DemandCategoryFormDialog } from "./DemandCategoryFormDialog";
@@ -110,30 +112,32 @@ export function DemandCategoriesPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">Manage the demand categories used across fee structures.</p>
-        <button
-          type="button"
-          onClick={() => setDialog({ mode: "create" })}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add Category
-        </button>
-      </div>
-
-      {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">Loading demand categories...</p>
-      ) : loadError ? (
-        <p className="py-8 text-center text-sm text-red-600">{loadError}</p>
-      ) : (
-        <DemandCategoriesTable
-          categories={categories}
-          onEdit={(category) => setDialog({ mode: "edit", category })}
-          onDelete={(category) => setDialog({ mode: "delete", category })}
-        />
-      )}
+    <>
+      <PanelSection
+        description="Manage the demand categories used across fee structures."
+        action={
+          <button
+            type="button"
+            onClick={() => setDialog({ mode: "create" })}
+            className="flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add Category
+          </button>
+        }
+      >
+        {isLoading ? (
+          <LoadingState />
+        ) : loadError ? (
+          <p className="py-8 text-center text-sm text-red-600">{loadError}</p>
+        ) : (
+          <DemandCategoriesTable
+            categories={categories}
+            onEdit={(category) => setDialog({ mode: "edit", category })}
+            onDelete={(category) => setDialog({ mode: "delete", category })}
+          />
+        )}
+      </PanelSection>
 
       {(dialog?.mode === "create" || dialog?.mode === "edit") && (
         <DemandCategoryFormDialog
@@ -154,6 +158,6 @@ export function DemandCategoriesPanel() {
           onConfirm={handleDeleteConfirm}
         />
       )}
-    </div>
+    </>
   );
 }

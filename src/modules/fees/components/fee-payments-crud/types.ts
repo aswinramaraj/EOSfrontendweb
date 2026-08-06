@@ -11,6 +11,7 @@ export interface FeePayment {
   receiptNo: string;
   isPartial: boolean;
   createdAt: string | null;
+  demandCategoryName: string | null;
 }
 
 export interface FeePaymentFormValues {
@@ -18,5 +19,4 @@ export interface FeePaymentFormValues {
   paymentDate: string;
   paymentMode: PaymentMode | null;
   receiptNo: string;
-  isPartial: boolean;
 }

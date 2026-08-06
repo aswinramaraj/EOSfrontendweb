@@ -11,6 +11,7 @@ interface RawStudentProfile {
   student_id: number;
   student_name: string | null;
   register_number: string | null;
+  roll_no: string | null;
   programme: string | null;
   department: string | null;
   batch: string | null;
@@ -69,6 +70,7 @@ export const studentWorkspaceService = {
         studentId: raw.student_profile?.student_id ?? studentId,
         name: raw.student_profile?.student_name ?? "—",
         registerNumber: raw.student_profile?.register_number ?? "—",
+        rollNo: raw.student_profile?.roll_no ?? "—",
         programme: raw.student_profile?.programme ?? "—",
         department: raw.student_profile?.department ?? "—",
         batch: raw.student_profile?.batch ?? "—",

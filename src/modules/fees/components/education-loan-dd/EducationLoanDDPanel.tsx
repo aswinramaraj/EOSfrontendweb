@@ -29,12 +29,23 @@ export function EducationLoanDDPanel({ demandMappingId, onDataChanged }: Educati
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Scoped to this student's own demand mapping — GET
+  // /student-fee-demand-mappings/:id/education-loan-dds — never the global
+  // GET /education-loan-dds list (that endpoint is untouched; it isn't used
+  // anywhere in this panel).
   function fetchList() {
+    if (demandMappingId === null) {
+      setItems([]);
+      setIsLoading(false);
+      setLoadError(null);
+      return Promise.resolve();
+    }
+
     setIsLoading(true);
     setLoadError(null);
 
     return educationLoanDDService
-      .list()
+      .listByDemandMapping(demandMappingId)
       .then((data) => setItems(data))
       .catch((err: unknown) => {
         setLoadError(err instanceof ApiError ? err.message : "Failed to load education loan DDs.");
@@ -44,7 +55,8 @@ export function EducationLoanDDPanel({ demandMappingId, onDataChanged }: Educati
 
   useEffect(() => {
     fetchList();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demandMappingId]);
 
   function handleSubmit(values: EducationLoanDDFormValues) {
     if (dialog?.mode === "edit") {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { PlusIcon } from "@/shared/components/icons";
 import { ApiError } from "@/shared/lib/api-client";
+import { PanelSection } from "../PanelSection";
+import { LoadingState } from "../fee-payments/LoadingState";
 import { quotasService } from "../../services/quotas.service";
 import { QuotasTable } from "./QuotasTable";
 import { QuotaFormDialog } from "./QuotaFormDialog";
@@ -110,30 +112,32 @@ export function QuotasPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">Manage the quotas used for fee structures and students.</p>
-        <button
-          type="button"
-          onClick={() => setDialog({ mode: "create" })}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add Quota
-        </button>
-      </div>
-
-      {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">Loading quotas...</p>
-      ) : loadError ? (
-        <p className="py-8 text-center text-sm text-red-600">{loadError}</p>
-      ) : (
-        <QuotasTable
-          quotas={quotas}
-          onEdit={(quota) => setDialog({ mode: "edit", quota })}
-          onDelete={(quota) => setDialog({ mode: "delete", quota })}
-        />
-      )}
+    <>
+      <PanelSection
+        description="Manage the quotas used for fee structures and students."
+        action={
+          <button
+            type="button"
+            onClick={() => setDialog({ mode: "create" })}
+            className="flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add Quota
+          </button>
+        }
+      >
+        {isLoading ? (
+          <LoadingState />
+        ) : loadError ? (
+          <p className="py-8 text-center text-sm text-red-600">{loadError}</p>
+        ) : (
+          <QuotasTable
+            quotas={quotas}
+            onEdit={(quota) => setDialog({ mode: "edit", quota })}
+            onDelete={(quota) => setDialog({ mode: "delete", quota })}
+          />
+        )}
+      </PanelSection>
 
       {(dialog?.mode === "create" || dialog?.mode === "edit") && (
         <QuotaFormDialog
@@ -154,6 +158,6 @@ export function QuotasPanel() {
           onConfirm={handleDeleteConfirm}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -11,9 +11,18 @@ interface RawFeePayment {
   receipt_no: string;
   is_partial: boolean;
   created_at: string;
+  demand_category_name?: string | null;
+  // Defensive: some payment list endpoints have been observed nesting the
+  // category under the fee structure item rather than as a flat field —
+  // checked as a fallback only, never preferred over the flat field.
+  fee_structure_item?: { demand_category?: { name?: string | null } | null } | null;
 }
 
 function mapPayment(raw: RawFeePayment): FeePayment {
+  const flatCategoryName = raw.demand_category_name;
+  const nestedCategoryName = raw.fee_structure_item?.demand_category?.name;
+  const demandCategoryName = (flatCategoryName?.trim() ? flatCategoryName : null) ?? nestedCategoryName ?? null;
+
   return {
     id: raw.id,
     amountPaid: Number(raw.amount_paid),
@@ -22,6 +31,7 @@ function mapPayment(raw: RawFeePayment): FeePayment {
     receiptNo: raw.receipt_no,
     isPartial: raw.is_partial,
     createdAt: raw.created_at,
+    demandCategoryName,
   };
 }
 
@@ -30,7 +40,6 @@ function toRequestBody(values: Partial<FeePaymentFormValues>) {
     ...(values.amountPaid !== undefined ? { amount_paid: Number(values.amountPaid) } : {}),
     ...(values.receiptNo !== undefined ? { receipt_no: values.receiptNo } : {}),
     ...(values.paymentMode !== undefined ? { payment_mode: values.paymentMode } : {}),
-    ...(values.isPartial !== undefined ? { is_partial: values.isPartial } : {}),
   };
 }
 
@@ -58,6 +67,27 @@ export const feePaymentsService = {
     const data = await apiClient.post<RawFeePayment>(
       `/student-fee-demand-mappings/${Number(demandMappingId)}/payments`,
       toRequestBody(values),
+      tokenStorage.getToken(),
+    );
+    return mapPayment(data);
+  },
+
+  // Category-wise Receive Payment flow: fee_structure_item_id is the exact
+  // value the billing staff selected from the category breakdown — never
+  // derived or guessed here, only forwarded as-is alongside the same body
+  // fields `create()` already sends. receipt_no is intentionally excluded —
+  // the backend now generates it, billing staff never enters one.
+  async createForCategory(
+    demandMappingId: number,
+    feeStructureItemId: number,
+    values: Omit<FeePaymentFormValues, "receiptNo">,
+  ) {
+    const data = await apiClient.post<RawFeePayment>(
+      `/student-fee-demand-mappings/${Number(demandMappingId)}/payments`,
+      {
+        fee_structure_item_id: Number(feeStructureItemId),
+        ...toRequestBody(values),
+      },
       tokenStorage.getToken(),
     );
     return mapPayment(data);

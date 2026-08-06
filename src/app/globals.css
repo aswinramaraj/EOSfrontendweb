@@ -150,3 +150,16 @@ body {
 .finance-slide-up {
   animation: finance-slide-up 0.4s ease-out both;
 }
+
+/* Receipt print isolation — the receipt is portaled to a direct child of
+   <body>, so this single rule hides every other top-level child (sidebar,
+   topbar, page content) regardless of how deeply nested they are, leaving
+   only the receipt visible in the print preview/output. */
+@media print {
+  body > *:not(#receipt-print-root) {
+    display: none !important;
+  }
+  #receipt-print-root {
+    display: block !important;
+  }
+}

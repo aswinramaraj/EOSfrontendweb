@@ -144,8 +144,19 @@ function mapFinanceOverview(raw: RawFinanceOverview): FinanceOverviewData {
 }
 
 export const financeOverviewService = {
-  async get() {
-    const data = await apiClient.get<RawFinanceOverview>("/finance-overview", tokenStorage.getToken());
+  // Omitting `batch` returns the same unscoped "All" aggregate this endpoint
+  // has always returned. Passing a real batch name (from getBatches()) scopes
+  // every section — KPIs, all 4 charts, Recent Payments, Top Outstanding
+  // Students, Concession/DD summaries — to that batch's students only.
+  async get(batch?: string) {
+    const path = batch ? `/finance-overview?batch=${encodeURIComponent(batch)}` : "/finance-overview";
+    const data = await apiClient.get<RawFinanceOverview>(path, tokenStorage.getToken());
     return mapFinanceOverview(data);
+  },
+
+  // Real batches that have at least one student with a fee demand mapping —
+  // nothing hardcoded, sourced directly from GET /finance-overview/batches.
+  async getBatches() {
+    return apiClient.get<string[]>("/finance-overview/batches", tokenStorage.getToken());
   },
 };

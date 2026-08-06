@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { PlusIcon } from "@/shared/components/icons";
 import { ApiError } from "@/shared/lib/api-client";
+import { PanelSection } from "../PanelSection";
+import { LoadingState } from "../fee-payments/LoadingState";
 import { feeStructureItemsService } from "../../services/fee-structure-items.service";
 import { feeStructuresService } from "../../services/fee-structures.service";
 import { demandCategoriesService } from "../../services/demand-categories.service";
@@ -124,32 +126,34 @@ export function FeeStructureItemsPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-500">Manage the demand category amounts within each fee structure.</p>
-        <button
-          type="button"
-          onClick={() => setDialog({ mode: "create" })}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <PlusIcon className="h-4 w-4" />
-          Add Item
-        </button>
-      </div>
-
-      {isLoading ? (
-        <p className="py-8 text-center text-sm text-zinc-500">Loading fee structure items...</p>
-      ) : loadError ? (
-        <p className="py-8 text-center text-sm text-red-600">{loadError}</p>
-      ) : (
-        <FeeStructureItemsTable
-          items={items}
-          feeStructures={feeStructures}
-          demandCategories={demandCategories}
-          onEdit={(item) => setDialog({ mode: "edit", item })}
-          onDelete={(item) => setDialog({ mode: "delete", item })}
-        />
-      )}
+    <>
+      <PanelSection
+        description="Manage the demand category amounts within each fee structure."
+        action={
+          <button
+            type="button"
+            onClick={() => setDialog({ mode: "create" })}
+            className="flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add Item
+          </button>
+        }
+      >
+        {isLoading ? (
+          <LoadingState />
+        ) : loadError ? (
+          <p className="py-8 text-center text-sm text-red-600">{loadError}</p>
+        ) : (
+          <FeeStructureItemsTable
+            items={items}
+            feeStructures={feeStructures}
+            demandCategories={demandCategories}
+            onEdit={(item) => setDialog({ mode: "edit", item })}
+            onDelete={(item) => setDialog({ mode: "delete", item })}
+          />
+        )}
+      </PanelSection>
 
       {(dialog?.mode === "create" || dialog?.mode === "edit") && (
         <FeeStructureItemFormDialog
@@ -172,6 +176,6 @@ export function FeeStructureItemsPanel() {
           onConfirm={handleDeleteConfirm}
         />
       )}
-    </div>
+    </>
   );
 }

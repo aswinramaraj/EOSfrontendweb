@@ -2,6 +2,7 @@ export interface StudentProfile {
   studentId: number;
   name: string;
   registerNumber: string;
+  rollNo: string;
   programme: string;
   department: string;
   batch: string;

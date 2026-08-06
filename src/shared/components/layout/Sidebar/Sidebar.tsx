@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Icon } from "../Icon";
 import { isActiveRoute } from "../Navigation/isActiveRoute";
-import { NAV, SESSION } from "./nav-data";
+import { NAV, SESSION, type NavItem } from "./nav-data";
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -12,6 +12,76 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // A child's href always looks like "/fees?tab=xyz" — active means we're on
+  // that path AND the current `tab` query param matches, so only one tab
+  // row is ever highlighted at a time.
+  function isChildActive(item: NavItem): boolean {
+    if (!item.href) return false;
+    const [itemPath, itemQuery] = item.href.split("?");
+    if (pathname !== itemPath) return false;
+    const itemTab = new URLSearchParams(itemQuery).get("tab");
+    return itemTab !== null && searchParams.get("tab") === itemTab;
+  }
+
+  function renderRow(item: NavItem, indented: boolean, isActive: boolean) {
+    const content = (
+      <>
+        <Icon name={item.icon} size={indented ? 16 : 18} className="shrink-0" />
+        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+        {!collapsed && item.soon && (
+          <span
+            className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium"
+            style={{ background: "var(--c-gray-100)", color: "var(--text-tertiary)" }}
+          >
+            Soon
+          </span>
+        )}
+        {!collapsed && item.badge && (
+          <span
+            className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium"
+            style={
+              item.badgeTone === "alert"
+                ? { background: "var(--c-danger-50)", color: "var(--c-danger-700)" }
+                : { background: "var(--c-primary-50)", color: "var(--c-primary-700)" }
+            }
+          >
+            {item.badge}
+          </span>
+        )}
+      </>
+    );
+
+    const className = `relative flex items-center gap-2.5 rounded-[var(--r-md)] py-2 text-[13px] font-medium transition-colors ${
+      indented ? "pl-9 pr-3 text-[12.5px]" : "px-3"
+    } ${
+      isActive
+        ? "bg-[var(--c-primary-50)] text-[var(--c-primary-700)]"
+        : item.soon
+          ? "cursor-default text-[var(--text-tertiary)]"
+          : "text-[var(--text-secondary)] hover:bg-[var(--c-gray-50)]"
+    }`;
+
+    const indicator = isActive && (
+      <span
+        className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full"
+        style={{ background: "var(--c-primary-600)" }}
+      />
+    );
+
+    return item.href && !item.soon ? (
+      <Link key={item.id} href={item.href} className={className} title={item.label}>
+        {indicator}
+        {content}
+      </Link>
+    ) : (
+      <button key={item.id} type="button" disabled={item.soon} className={className} title={item.label}>
+        {indicator}
+        {content}
+      </button>
+    );
+  }
 
   return (
     <aside
@@ -36,66 +106,26 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
       <nav className="flex-1 overflow-y-auto px-3 py-3">
         {NAV.map((group) => (
-          <div key={group.label} className="mb-1">
-            {!collapsed && (
+          <div key={group.label || "default"} className="mb-1">
+            {!collapsed && group.label && (
               <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
                 {group.label}
               </p>
             )}
             {group.items.map((item) => {
-              const isActive = isActiveRoute(pathname, item.href);
-              const content = (
-                <>
-                  <Icon name={item.icon} size={18} className="shrink-0" />
-                  {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-                  {!collapsed && item.soon && (
-                    <span
-                      className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium"
-                      style={{ background: "var(--c-gray-100)", color: "var(--text-tertiary)" }}
-                    >
-                      Soon
-                    </span>
+              const hasChildren = !!item.children?.length;
+              const childActive = hasChildren && item.children!.some((child) => isChildActive(child));
+              const isActive = childActive || isActiveRoute(pathname, item.href);
+
+              return (
+                <div key={item.id}>
+                  {renderRow(item, false, isActive)}
+                  {hasChildren && !collapsed && (
+                    <div className="mt-0.5 flex flex-col gap-0.5">
+                      {item.children!.map((child) => renderRow(child, true, isChildActive(child)))}
+                    </div>
                   )}
-                  {!collapsed && item.badge && (
-                    <span
-                      className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium"
-                      style={
-                        item.badgeTone === "alert"
-                          ? { background: "var(--c-danger-50)", color: "var(--c-danger-700)" }
-                          : { background: "var(--c-primary-50)", color: "var(--c-primary-700)" }
-                      }
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              );
-
-              const className = `relative flex items-center gap-2.5 rounded-[var(--r-md)] px-3 py-2 text-[13px] font-medium transition-colors ${
-                isActive
-                  ? "bg-[var(--c-primary-50)] text-[var(--c-primary-700)]"
-                  : item.soon
-                    ? "cursor-default text-[var(--text-tertiary)]"
-                    : "text-[var(--text-secondary)] hover:bg-[var(--c-gray-50)]"
-              }`;
-
-              const indicator = isActive && (
-                <span
-                  className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full"
-                  style={{ background: "var(--c-primary-600)" }}
-                />
-              );
-
-              return item.href && !item.soon ? (
-                <Link key={item.id} href={item.href} className={className} title={item.label}>
-                  {indicator}
-                  {content}
-                </Link>
-              ) : (
-                <button key={item.id} type="button" disabled={item.soon} className={className} title={item.label}>
-                  {indicator}
-                  {content}
-                </button>
+                </div>
               );
             })}
           </div>

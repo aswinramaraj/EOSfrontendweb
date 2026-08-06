@@ -8,6 +8,10 @@ export interface NavItem {
   soon?: boolean;
   badge?: string;
   badgeTone?: "alert" | "brand";
+  // Sub-rows rendered indented beneath this item — used for the Fees &
+  // Finance tabs (Fee Payments, Demand, Quota, ...) so each is directly
+  // reachable from the sidebar, alongside the existing in-page tab bar.
+  children?: NavItem[];
 }
 
 export interface NavGroup {
@@ -15,52 +19,37 @@ export interface NavGroup {
   items: NavItem[];
 }
 
+// Only Fees & Finance is a real, built module right now — every other item
+// from the original navigation (Students, Academics, Placements, etc.) has
+// been removed rather than shown with fabricated counts/badges. Add groups
+// back here as each module actually ships.
+//
+// Children mirror FEES_TABS (src/modules/fees/constants.ts) via the `tab`
+// query param — /fees/page.tsx reads it to select the same tab the in-page
+// tab bar controls, so both stay in sync without duplicating tab state.
 export const NAV: NavGroup[] = [
   {
-    label: "Overview",
+    label: "",
     items: [
-      { id: "dashboard", label: "Dashboard", icon: "dashboard", href: "/" },
-      { id: "analytics", label: "Analytics", icon: "barChart", soon: true },
-      { id: "reports", label: "Reports", icon: "fileText", soon: true },
-    ],
-  },
-  {
-    label: "Student Lifecycle",
-    items: [
-      { id: "students", label: "Students", icon: "users", badge: "48" },
-      { id: "admissions", label: "Admissions", icon: "userPlus", soon: true },
-      { id: "enrollment", label: "Enrollment", icon: "userCheck", soon: true },
-      { id: "alumni", label: "Alumni", icon: "graduation", soon: true },
-    ],
-  },
-  {
-    label: "Academics",
-    items: [
-      { id: "departments", label: "Departments", icon: "building", soon: true },
-      { id: "programmes", label: "Programmes", icon: "layers", soon: true },
-      { id: "courses", label: "Courses", icon: "bookOpen", soon: true },
-      { id: "attendance", label: "Attendance", icon: "calendarCheck", soon: true },
-      { id: "marks", label: "Marks & Grades", icon: "clipboard", soon: true },
-      { id: "examinations", label: "Examinations", icon: "award", soon: true },
-      { id: "faculty", label: "Faculty", icon: "user", soon: true },
-    ],
-  },
-  {
-    label: "Services",
-    items: [
-      { id: "fees", label: "Fees & Finance", icon: "wallet", href: "/fees", badge: "9", badgeTone: "alert" },
-      { id: "scholarships", label: "Scholarships", icon: "star", soon: true },
-      { id: "library", label: "Library", icon: "book", soon: true },
-      { id: "hostel", label: "Hostel", icon: "home", soon: true },
-      { id: "transport", label: "Transport", icon: "bus", soon: true },
-      { id: "medical", label: "Medical", icon: "stethoscope", soon: true },
-    ],
-  },
-  {
-    label: "Outcomes",
-    items: [
-      { id: "placement", label: "Placements", icon: "briefcase", soon: true },
-      { id: "internships", label: "Internships", icon: "target", soon: true },
+      {
+        id: "fees",
+        label: "Fees & Finance",
+        icon: "wallet",
+        href: "/fees",
+        children: [
+          { id: "fees-fee-payments", label: "Fee Payments", icon: "wallet", href: "/fees?tab=fee-payments" },
+          { id: "fees-finance-overview", label: "Finance Overview", icon: "barChart", href: "/fees?tab=finance-overview" },
+          { id: "fees-demand", label: "Demand", icon: "clipboard", href: "/fees?tab=demand" },
+          { id: "fees-quota", label: "Quota", icon: "layers", href: "/fees?tab=quota" },
+          { id: "fees-fee-structures", label: "Fee Structures", icon: "building", href: "/fees?tab=fee-structures" },
+          {
+            id: "fees-fee-structure-items",
+            label: "Fee Structure Items",
+            icon: "fileText",
+            href: "/fees?tab=fee-structure-items",
+          },
+        ],
+      },
     ],
   },
 ];
