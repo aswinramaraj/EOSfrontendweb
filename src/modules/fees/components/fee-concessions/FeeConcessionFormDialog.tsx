@@ -64,7 +64,7 @@ export function FeeConcessionFormDialog({
               value={concessionAmount}
               onChange={(e) => setConcessionAmount(e.target.value)}
               placeholder="e.g. 5000"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 
@@ -73,7 +73,7 @@ export function FeeConcessionFormDialog({
               type="checkbox"
               checked={isSettled}
               onChange={(e) => setIsSettled(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 text-[#2563EB] focus:ring-[#BFDBFE]"
+              className="h-4 w-4 rounded border-zinc-300 text-[#2F6FE0] focus:ring-[#BFD3F5]"
             />
             <span className="text-sm font-medium text-zinc-700">Settled</span>
           </label>
@@ -84,7 +84,7 @@ export function FeeConcessionFormDialog({
               type="date"
               value={settledDate}
               onChange={(e) => setSettledDate(e.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 
@@ -99,7 +99,7 @@ export function FeeConcessionFormDialog({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="rounded-lg bg-[#2F6FE0] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {isSubmitting ? "Saving..." : isEdit ? "Save Changes" : "Add Concession"}
             </button>

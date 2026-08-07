@@ -70,7 +70,7 @@ export function FeeStructureItemFormDialog({
                 required
                 value={feeStructureId}
                 onChange={(e) => setFeeStructureId(e.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               >
                 {feeStructures.map((feeStructure) => (
                   <option key={feeStructure.id} value={feeStructure.id}>
@@ -86,7 +86,7 @@ export function FeeStructureItemFormDialog({
                 required
                 value={demandCategoryId}
                 onChange={(e) => setDemandCategoryId(e.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               >
                 {demandCategories.map((category) => (
                   <option key={category.id} value={category.id}>
@@ -107,7 +107,7 @@ export function FeeStructureItemFormDialog({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 60000"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 

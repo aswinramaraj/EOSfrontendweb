@@ -18,7 +18,7 @@ export function WorkspaceTabs({ tabs, activeKey, onTabChange }: WorkspaceTabsPro
             onClick={() => onTabChange(tab.key)}
             className={`-mb-px border-b-2 px-0.5 pb-3 text-sm font-medium transition ${
               isActive
-                ? "border-[#2563EB] text-[#2563EB]"
+                ? "border-[#2F6FE0] text-[#2F6FE0]"
                 : "border-transparent text-zinc-500 hover:text-zinc-700"
             }`}
           >

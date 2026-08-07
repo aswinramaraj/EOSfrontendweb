@@ -82,7 +82,7 @@ export function FeePaymentsList({ payments, student, onAdd, onEdit, onDelete }: 
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="flex items-center gap-1.5 rounded-lg bg-[#2F6FE0] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <PlusIcon className="h-4 w-4" />
           Receive Payment
@@ -103,7 +103,7 @@ export function FeePaymentsList({ payments, student, onAdd, onEdit, onDelete }: 
                   }}
                   onChange={toggleAll}
                   disabled={selectableIds.length === 0}
-                  className="h-4 w-4 rounded border-zinc-300 text-[#2563EB] focus:ring-[#BFDBFE]"
+                  className="h-4 w-4 rounded border-zinc-300 text-[#2F6FE0] focus:ring-[#BFD3F5]"
                 />
               </th>
               <th className="py-3 pr-4 font-medium">Date</th>
@@ -131,12 +131,12 @@ export function FeePaymentsList({ payments, student, onAdd, onEdit, onDelete }: 
                       aria-label={`Select payment ${payment.receiptNo}`}
                       checked={isSelected}
                       onChange={() => toggleOne(payment.id)}
-                      className="h-4 w-4 rounded border-zinc-300 text-[#2563EB] focus:ring-[#BFDBFE]"
+                      className="h-4 w-4 rounded border-zinc-300 text-[#2F6FE0] focus:ring-[#BFD3F5]"
                     />
                   </td>
                   <td className="py-3 pr-4">{formatDate(payment.paymentDate)}</td>
                   <td className="py-3 pr-4 text-zinc-600">{payment.demandCategoryName ?? "—"}</td>
-                  <td className="py-3 pr-4 text-[#2563EB]">{payment.receiptNo}</td>
+                  <td className="py-3 pr-4 text-[#2F6FE0]">{payment.receiptNo}</td>
                   <td className="py-3 pr-4 text-zinc-600">
                     {payment.paymentMode ? PAYMENT_MODE_LABELS[payment.paymentMode] ?? payment.paymentMode : "—"}
                   </td>
@@ -187,7 +187,7 @@ export function FeePaymentsList({ payments, student, onAdd, onEdit, onDelete }: 
                 aria-pressed={isEducationLoanReceipt}
                 className={`rounded-lg border px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
                   isEducationLoanReceipt
-                    ? "border-[#2563EB] bg-blue-50 text-[#2563EB]"
+                    ? "border-[#2F6FE0] bg-blue-50 text-[#2F6FE0]"
                     : "border-zinc-200 text-zinc-700 hover:bg-zinc-50"
                 }`}
               >
@@ -197,7 +197,7 @@ export function FeePaymentsList({ payments, student, onAdd, onEdit, onDelete }: 
                 type="button"
                 disabled={!canPrint}
                 onClick={() => setIsPrinting(true)}
-                className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
+                className="rounded-lg bg-[#2F6FE0] px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400"
               >
                 Print Receipt
               </button>
@@ -213,7 +213,7 @@ export function FeePaymentsList({ payments, student, onAdd, onEdit, onDelete }: 
                 value={ddReferenceNumber}
                 onChange={(e) => setDdReferenceNumber(e.target.value)}
                 placeholder="e.g. DD2025000441"
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               />
             </label>
           )}

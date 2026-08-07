@@ -7,6 +7,15 @@ const USER_KEY = "eos_user";
 // across renders instead of a freshly-parsed object every call.
 let cachedUser: AuthUser | null | undefined = undefined;
 
+// The cross-tab "storage" event never fires in the tab that made the
+// change, so useAuthUser also needs this same-tab notification to react to
+// a same-tab set()/clear() (e.g. a 401-triggered logout).
+const listeners = new Set<() => void>();
+
+function notify() {
+  for (const listener of listeners) listener();
+}
+
 function readUserFromStorage(): AuthUser | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(USER_KEY);
@@ -36,11 +45,18 @@ export const tokenStorage = {
     window.localStorage.setItem(TOKEN_KEY, token);
     window.localStorage.setItem(USER_KEY, JSON.stringify(user));
     cachedUser = user;
+    notify();
   },
 
   clear() {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
     cachedUser = null;
+    notify();
+  },
+
+  subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
   },
 };

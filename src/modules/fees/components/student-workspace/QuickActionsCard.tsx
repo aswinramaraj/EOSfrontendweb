@@ -14,7 +14,7 @@ export function QuickActionsCard({ onReceivePayment, onPrintReceipt }: QuickActi
         <button
           type="button"
           onClick={onReceivePayment}
-          className="flex items-center gap-2 rounded-lg bg-[#BFDBFE]/40 px-3 py-2 text-left text-sm font-medium text-[#2563EB] transition"
+          className="flex items-center gap-2 rounded-lg bg-[#BFD3F5]/40 px-3 py-2 text-left text-sm font-medium text-[#2F6FE0] transition"
         >
           <PlusIcon className="h-4 w-4" />
           Receive Payment

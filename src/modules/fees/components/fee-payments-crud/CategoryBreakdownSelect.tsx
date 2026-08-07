@@ -60,7 +60,7 @@ export function CategoryBreakdownSelect({
             required
             value={selectedItemId}
             onChange={(e) => onSelectItem(e.target.value)}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
           >
             <option value="">Select a fee category</option>
             {breakdown.map((item) => (

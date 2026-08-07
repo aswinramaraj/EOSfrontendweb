@@ -98,7 +98,7 @@ export function CreateFeeStructureFormDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. AI&DS - 2026"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 
@@ -109,7 +109,7 @@ export function CreateFeeStructureFormDialog({
                 required
                 value={appliesTo}
                 onChange={(e) => setAppliesTo(e.target.value as FeeStructureAppliesTo)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               >
                 {APPLIES_TO_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -124,7 +124,7 @@ export function CreateFeeStructureFormDialog({
               <select
                 value={quotaId}
                 onChange={(e) => setQuotaId(e.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               >
                 <option value="">None</option>
                 {quotas.map((quota) => (
@@ -145,7 +145,7 @@ export function CreateFeeStructureFormDialog({
               value={academicYear}
               onChange={(e) => setAcademicYear(e.target.value)}
               placeholder="e.g. 2026-2027"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 
@@ -161,7 +161,7 @@ export function CreateFeeStructureFormDialog({
                       required
                       value={row.demandCategoryId}
                       onChange={(e) => updateRow(index, { demandCategoryId: e.target.value })}
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
                     >
                       {demandCategories.map((category) => (
                         <option key={category.id} value={category.id}>
@@ -181,7 +181,7 @@ export function CreateFeeStructureFormDialog({
                       value={row.amount}
                       onChange={(e) => updateRow(index, { amount: e.target.value })}
                       placeholder="e.g. 60000"
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
                     />
                   </label>
 
@@ -194,7 +194,7 @@ export function CreateFeeStructureFormDialog({
                       value={row.concessionAmount}
                       onChange={(e) => updateRow(index, { concessionAmount: e.target.value })}
                       placeholder="Optional"
-                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                      className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
                     />
                   </label>
 

@@ -160,7 +160,7 @@ export function ReceiptDocument({ student, payments, ddReferenceNumber }: Receip
             </thead>
             <tbody>
               {payments.map((payment, index) => (
-                <tr key={payment.id} className="border-b border-dotted border-zinc-500">
+                <tr key={payment.id} className="border-b border-black">
                   <td className="py-1.5 pl-4 align-top">{index + 1}</td>
                   <td className="py-1.5 pl-2 align-top">{payment.demandCategoryName ?? "—"}</td>
                   <td className="border-l-2 border-black py-1.5 pr-4 text-right align-top tabular-nums">

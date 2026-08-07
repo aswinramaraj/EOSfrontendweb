@@ -70,7 +70,7 @@ export function FeeStructureFormDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. AI&DS - 2026"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 
@@ -81,7 +81,7 @@ export function FeeStructureFormDialog({
                 required
                 value={appliesTo}
                 onChange={(e) => setAppliesTo(e.target.value as FeeStructureAppliesTo)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               >
                 {APPLIES_TO_OPTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -96,7 +96,7 @@ export function FeeStructureFormDialog({
               <select
                 value={quotaId}
                 onChange={(e) => setQuotaId(e.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
               >
                 <option value="">None</option>
                 {quotas.map((quota) => (
@@ -117,7 +117,7 @@ export function FeeStructureFormDialog({
               value={academicYear}
               onChange={(e) => setAcademicYear(e.target.value)}
               placeholder="e.g. 2026-2027"
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2563EB] focus:ring-2 focus:ring-[#BFDBFE]"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-[#2F6FE0] focus:ring-2 focus:ring-[#BFD3F5]"
             />
           </label>
 

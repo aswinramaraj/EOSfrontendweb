@@ -2,15 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { XIcon } from "@/shared/components/icons";
 import { Icon } from "../Icon";
 import { isActiveRoute } from "../Navigation/isActiveRoute";
-import { NAV, SESSION, type NavItem } from "./nav-data";
+import { NAV, type NavItem } from "./nav-data";
 
 interface SidebarProps {
-  collapsed?: boolean;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 }
 
-export function Sidebar({ collapsed = false }: SidebarProps) {
+// Visually mirrors LibrarySidebar/HostelSidebar — plain white list, grouped
+// section labels, bg-blue-50/text-blue-700 active state, mobile overlay —
+// so every module's sidebar looks the same. Fees & Finance keeps its own
+// nav-data (with indented sub-rows for each tab), rendered in that shared
+// visual style.
+export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -29,23 +36,17 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     const content = (
       <>
         <Icon name={item.icon} size={indented ? 16 : 18} className="shrink-0" />
-        {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-        {!collapsed && item.soon && (
-          <span
-            className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium"
-            style={{ background: "var(--c-gray-100)", color: "var(--text-tertiary)" }}
-          >
+        <span className="flex-1 truncate">{item.label}</span>
+        {item.soon && (
+          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-400">
             Soon
           </span>
         )}
-        {!collapsed && item.badge && (
+        {item.badge && (
           <span
-            className="rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium"
-            style={
-              item.badgeTone === "alert"
-                ? { background: "var(--c-danger-50)", color: "var(--c-danger-700)" }
-                : { background: "var(--c-primary-50)", color: "var(--c-primary-700)" }
-            }
+            className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+              item.badgeTone === "alert" ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"
+            }`}
           >
             {item.badge}
           </span>
@@ -53,62 +54,44 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       </>
     );
 
-    const className = `relative flex items-center gap-2.5 rounded-[var(--r-md)] py-2 text-[13px] font-medium transition-colors ${
-      indented ? "pl-9 pr-3 text-[12.5px]" : "px-3"
+    const className = `flex items-center gap-3 rounded-md py-2.5 text-[14.5px] font-medium transition-colors ${
+      indented ? "pl-9 pr-3 text-[13.5px]" : "px-3"
     } ${
       isActive
-        ? "bg-[var(--c-primary-50)] text-[var(--c-primary-700)]"
+        ? "bg-blue-50 text-blue-700"
         : item.soon
-          ? "cursor-default text-[var(--text-tertiary)]"
-          : "text-[var(--text-secondary)] hover:bg-[var(--c-gray-50)]"
+          ? "cursor-default text-slate-400"
+          : "text-slate-600 hover:bg-slate-50"
     }`;
 
-    const indicator = isActive && (
-      <span
-        className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full"
-        style={{ background: "var(--c-primary-600)" }}
-      />
-    );
-
     return item.href && !item.soon ? (
-      <Link key={item.id} href={item.href} className={className} title={item.label}>
-        {indicator}
+      <Link key={item.id} href={item.href} onClick={onCloseMobile} className={className} title={item.label}>
         {content}
       </Link>
     ) : (
       <button key={item.id} type="button" disabled={item.soon} className={className} title={item.label}>
-        {indicator}
         {content}
       </button>
     );
   }
 
-  return (
-    <aside
-      className="sticky top-0 flex h-screen shrink-0 flex-col border-r bg-white transition-[width] duration-[180ms]"
-      style={{
-        width: collapsed ? "var(--sidebar-w-collapsed)" : "var(--sidebar-w)",
-        borderColor: "var(--border-subtle)",
-      }}
-    >
-      <div
-        className="flex h-[var(--topbar-h)] items-center gap-2 border-b px-4"
-        style={{ borderColor: "var(--border-subtle)" }}
-      >
-        <img src="/assest/secelogo.png" alt="Sri Eshwar College of Engineering" className="h-8 w-8 shrink-0" />
-        {!collapsed && (
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-bold text-[var(--text-primary)]">Sri Eshwar</p>
-            <p className="truncate text-[10px] text-[var(--text-tertiary)]">College of Engineering</p>
-          </div>
-        )}
+  const content = (
+    <>
+      <div className="flex items-center justify-end px-4 py-3 lg:hidden">
+        <button
+          onClick={onCloseMobile}
+          className="text-slate-400 hover:text-slate-600"
+          aria-label="Close menu"
+        >
+          <XIcon className="h-5 w-5" />
+        </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
+      <nav className="flex flex-col gap-1 overflow-y-auto px-4 py-4">
         {NAV.map((group) => (
-          <div key={group.label || "default"} className="mb-1">
-            {!collapsed && group.label && (
-              <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-tertiary)]">
+          <div key={group.label || "default"} className="mb-3 flex flex-col gap-0.5">
+            {group.label && (
+              <p className="px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 {group.label}
               </p>
             )}
@@ -120,7 +103,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
               return (
                 <div key={item.id}>
                   {renderRow(item, false, isActive)}
-                  {hasChildren && !collapsed && (
+                  {hasChildren && (
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       {item.children!.map((child) => renderRow(child, true, isChildActive(child)))}
                     </div>
@@ -131,31 +114,27 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           </div>
         ))}
       </nav>
+    </>
+  );
 
-      <div className="border-t p-3" style={{ borderColor: "var(--border-subtle)" }}>
-        <button
-          type="button"
-          className="flex w-full items-center gap-2.5 rounded-[var(--r-md)] p-2 text-left hover:bg-[var(--c-gray-50)]"
-        >
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold"
-            style={{ background: "var(--c-primary-100)", color: "var(--c-primary-700)" }}
-          >
-            {SESSION.initials}
-          </span>
-          {!collapsed && (
-            <>
-              <span className="min-w-0 flex-1 leading-tight">
-                <span className="block truncate text-[13px] font-medium text-[var(--text-primary)]">
-                  {SESSION.name}
-                </span>
-                <span className="block truncate text-[12px] text-[var(--text-tertiary)]">{SESSION.role}</span>
-              </span>
-              <Icon name="chevronDown" size={14} className="shrink-0 text-[var(--text-tertiary)]" />
-            </>
-          )}
-        </button>
-      </div>
-    </aside>
+  return (
+    <>
+      <aside className="hidden h-full w-65 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white lg:flex">
+        {content}
+      </aside>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 flex lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/30"
+            onClick={onCloseMobile}
+            aria-hidden="true"
+          />
+          <aside className="relative flex h-full w-65 flex-col overflow-y-auto bg-white shadow-xl">
+            {content}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }

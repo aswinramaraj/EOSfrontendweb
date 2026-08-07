@@ -1,54 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #101828;
+  --background: #f7f8fa;
+  --foreground: #111827;
 
-  /* Primary ramp */
-  --c-primary-50: #eff6ff;
-  --c-primary-100: #dbeafe;
-  --c-primary-200: #bfdbfe;
-  --c-primary-500: #3b82f6;
-  --c-primary-600: #2563eb;
-  --c-primary-700: #1d4ed8;
+  /* Primary ramp — matches the mobile app's brand blue (#2F6FE0, gradient
+     end-stop #1A3D8F) so both products share one visual identity. */
+  --c-primary-50: #eaf0fd;
+  --c-primary-100: #dce8fb;
+  --c-primary-200: #bfd3f5;
+  --c-primary-500: #2f6fe0;
+  --c-primary-600: #2f6fe0;
+  --c-primary-700: #1a3d8f;
+
+  /* Secondary navy — the app's bottom-tab-bar-active / secondary-accent
+     color, used sparingly as a deeper alternative to the primary blue. */
+  --c-secondary-navy: #1e3a8a;
 
   /* Neutral ramp (cool-tuned) */
   --c-gray-25: #fcfcfd;
-  --c-gray-50: #f8fafc;
-  --c-gray-100: #f1f5f9;
-  --c-gray-200: #e6ebf1;
-  --c-gray-300: #d4dce6;
-  --c-gray-400: #97a3b6;
-  --c-gray-500: #667085;
-  --c-gray-600: #4b5768;
-  --c-gray-700: #344054;
-  --c-gray-800: #1d2939;
-  --c-gray-900: #101828;
+  --c-gray-50: #f7f8fa;
+  --c-gray-100: #f1f3f6;
+  --c-gray-200: #eef0f4;
+  --c-gray-300: #e5e7eb;
+  --c-gray-400: #9aa6b2;
+  --c-gray-500: #6b7280;
+  --c-gray-600: #4b5563;
+  --c-gray-700: #374151;
+  --c-gray-800: #1f2937;
+  --c-gray-900: #111827;
 
   /* Semantic (50 / 200 / 600 / 700) */
-  --c-success-50: #ecfdf3;
-  --c-success-600: #079455;
+  --c-success-50: #f0fdf4;
+  --c-success-600: #16a34a;
   --c-success-700: #067647;
-  --c-warning-50: #fffaeb;
-  --c-warning-600: #dc6803;
+  --c-warning-50: #fef3c7;
+  --c-warning-600: #d97706;
   --c-warning-700: #b54708;
-  --c-danger-50: #fef3f2;
-  --c-danger-600: #d92d20;
+  --c-danger-50: #fef2f2;
+  --c-danger-600: #dc2626;
   --c-danger-700: #b42318;
 
   /* Data ramp: strength, not tone */
   --data-strong: var(--c-primary-600);
-  --data-mid: #60a5fa;
+  --data-mid: #5d8ce0;
   --data-weak: var(--c-primary-200);
   --data-muted: var(--c-gray-300);
 
-  --surface-header: #f9fbff;
+  --surface-header: #eaf0fd;
+  --surface-input: #f9fafb;
   --border-subtle: var(--c-gray-200);
   --border-default: var(--c-gray-300);
 
   --text-primary: var(--c-gray-900);
   --text-secondary: var(--c-gray-600);
   --text-tertiary: var(--c-gray-500);
+  --text-muted: #8a93a3;
+  --icon-muted: #b0b7c3;
 
   /* Type scale */
   --fs-2xs: 0.6875rem;
@@ -70,10 +78,11 @@
   --r-xl: 14px;
   --r-full: 999px;
 
-  /* Elevation */
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  /* Elevation — shadow tint matches the app's shadowColor (#0F172A) at the
+     same low opacities used on every mobile card (~0.06). */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
 
   /* Shell */
   --sidebar-w: 264px;
@@ -81,7 +90,7 @@
   --topbar-h: 60px;
   --content-max: 1720px;
   --c-white: #ffffff;
-  --border-header: #e3ecf9;
+  --border-header: #dce8fb;
 }
 
 @theme inline {
@@ -89,6 +98,22 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Remap Tailwind's built-in blue color scale to the shared brand ramp so
+     every bg-blue, text-blue and border-blue utility across the whole app
+     (not just Fees & Finance) already matches the mobile app without
+     editing each component file. */
+  --color-blue-50: #eaf0fd;
+  --color-blue-100: #dce8fb;
+  --color-blue-200: #bfd3f5;
+  --color-blue-300: #93b3ea;
+  --color-blue-400: #5d8ce0;
+  --color-blue-500: #2f6fe0;
+  --color-blue-600: #2f6fe0;
+  --color-blue-700: #1a3d8f;
+  --color-blue-800: #16337a;
+  --color-blue-900: #122960;
+  --color-blue-950: #0b1a3d;
 }
 
 body {

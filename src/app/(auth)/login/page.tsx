@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="relative isolate overflow-hidden bg-linear-to-r from-blue-800 via-blue-700 to-blue-500 px-6 py-5 sm:px-10">
+      <header className="relative isolate overflow-hidden bg-linear-to-r from-blue-700 via-blue-600 to-blue-500 px-6 py-5 sm:px-10">
         <div className="animate-header-glow absolute inset-y-0 left-0 z-0 w-1/3 -skew-x-12 bg-linear-to-r from-transparent via-white/25 to-transparent" />
         <div className="relative z-10 mx-auto flex max-w-7xl items-center gap-4">
           <Image

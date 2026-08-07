@@ -133,7 +133,7 @@ export function FeeStructureItemsPanel() {
           <button
             type="button"
             onClick={() => setDialog({ mode: "create" })}
-            className="flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-1.5 rounded-lg bg-[#2F6FE0] px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             <PlusIcon className="h-4 w-4" />
             Add Item
