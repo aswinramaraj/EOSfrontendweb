@@ -54,6 +54,27 @@ async function request<T>(
   return (body as ApiEnvelope<T>).data;
 }
 
+async function requestForm<T>(
+  path: string,
+  method: "POST" | "PATCH",
+  formData: FormData,
+  token?: string | null,
+): Promise<T> {
+  // No Content-Type header here on purpose — fetch sets
+  // multipart/form-data with the correct boundary automatically for a
+  // FormData body; setting it manually breaks the boundary.
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+
+  if (!res.ok) await throwApiError(res);
+
+  const body = await res.json().catch(() => null);
+  return (body as ApiEnvelope<T>).data;
+}
+
 export interface BlobResponse {
   blob: Blob;
   filename: string | null;
@@ -103,5 +124,7 @@ export const apiClient = {
     ),
   delete: <T>(path: string, token?: string | null) =>
     request<T>(path, { method: "DELETE" }, token),
+  postForm: <T>(path: string, formData: FormData, token?: string | null) =>
+    requestForm<T>(path, "POST", formData, token),
   downloadBlob,
 };
