@@ -13,10 +13,14 @@ interface DataTableProps<T> {
   isLoading?: boolean;
   error?: string | null;
   emptyMessage?: string;
-  /** Rendered inside this same bordered card, below the table, separated
-   *  by a border-t — e.g. a pagination bar that should read as part of
-   *  the table rather than a second, disconnected block underneath it. */
+  /** Rendered inside this same bordered card, below the table — e.g. a
+   *  pagination bar that should read as part of the table rather than a
+   *  second, disconnected block underneath it. Bring your own border-t
+   *  (PaginationBar already does) — this wrapper doesn't add one, to avoid
+   *  a doubled-up divider. */
   footer?: React.ReactNode;
+  /** When set, rows become clickable (pointer cursor + hover highlight) — e.g. to open a detail view. */
+  onRowClick?: (row: T) => void;
 }
 
 const SKELETON_ROWS = 5;
@@ -29,6 +33,7 @@ export function DataTable<T>({
   error = null,
   emptyMessage = "No records found.",
   footer,
+  onRowClick,
 }: DataTableProps<T>) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white">
@@ -79,7 +84,13 @@ export function DataTable<T>({
             {!isLoading &&
               !error &&
               rows.map((row, index) => (
-                <tr key={rowKey(row, index)} className="border-b border-slate-100 last:border-b-0">
+                <tr
+                  key={rowKey(row, index)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={`border-b border-slate-100 last:border-b-0 ${
+                    onRowClick ? "cursor-pointer hover:bg-slate-50" : ""
+                  }`}
+                >
                   {columns.map((col) => (
                     <td
                       key={col.key}
@@ -95,7 +106,7 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
-      {footer && <div className="border-t border-slate-200">{footer}</div>}
+      {footer}
     </div>
   );
 }

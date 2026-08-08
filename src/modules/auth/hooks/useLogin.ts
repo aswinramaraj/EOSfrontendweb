@@ -11,6 +11,7 @@ import type { QuickRole, Role } from "../types";
 const ROLE_HOME: Partial<Record<Role, string>> = {
   admin: "/admin",
   library: "/library",
+  placement: "/placement",
   gate_warden: "/hostel",
   iqac: "/iqac",
 };
