@@ -14,6 +14,11 @@ interface DatePickerProps {
   /** ISO "YYYY-MM-DD". Defaults to 100 years before `max`. */
   min?: string;
   placeholder?: string;
+  /** Year dropdown order. Defaults to "desc" (newest first) — the existing
+   *  behavior everywhere else (e.g. birth dates, where the recent past
+   *  should be closest). Pass "asc" for near-future pickers like a drive
+   *  date, where the current year belongs at the top. */
+  yearOrder?: "asc" | "desc";
 }
 
 const MONTH_NAMES = [
@@ -47,7 +52,16 @@ function formatDisplay(iso: string) {
 // controlled year list (always ascending, opens wherever the browser
 // decides) is the wrong UX — e.g. picking a birth date decades in the
 // past. This owns the year order and the valid range outright.
-export function DatePicker({ id, value, onChange, hasError, max, min, placeholder = "Select date" }: DatePickerProps) {
+export function DatePicker({
+  id,
+  value,
+  onChange,
+  hasError,
+  max,
+  min,
+  placeholder = "Select date",
+  yearOrder = "desc",
+}: DatePickerProps) {
   const today = todayIso();
   const effectiveMax = max ?? today;
   const maxYM = effectiveMax.slice(0, 7);
@@ -58,7 +72,11 @@ export function DatePicker({ id, value, onChange, hasError, max, min, placeholde
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<"below" | "above">("below");
 
-  const seed = value ?? effectiveMax;
+  // Default the initial view to today when it's actually in range, not to
+  // `max` — for a future-dated range (e.g. drive dates spanning the next
+  // few years), `max` is the LAST year in the range, not the current one.
+  const todayInRange = today >= effectiveMin && today <= effectiveMax;
+  const seed = value ?? (todayInRange ? today : effectiveMax);
   const [viewYear, setViewYear] = useState(() => Number(seed.slice(0, 4)));
   const [viewMonth, setViewMonth] = useState(() => Number(seed.slice(5, 7)) - 1);
 
@@ -87,7 +105,10 @@ export function DatePicker({ id, value, onChange, hasError, max, min, placeholde
 
   const maxYear = Number(maxYM.slice(0, 4));
   const minYear = Number(minYM.slice(0, 4));
-  const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i);
+  const years = Array.from(
+    { length: maxYear - minYear + 1 },
+    (_, i) => (yearOrder === "asc" ? minYear + i : maxYear - i),
+  );
 
   const viewYM = `${viewYear}-${pad(viewMonth + 1)}`;
   const prevDisabled = viewYM <= minYM;

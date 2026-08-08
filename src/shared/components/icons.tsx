@@ -410,3 +410,20 @@ export function CalendarIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function RupeeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M6 4h12M6 4c4 0 7 1.5 7 4.5S10 13 6 13h9M6 13l9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function BellIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path d="M6 10a6 6 0 0 1 12 0c0 3.5 1 5.2 2 6.5H4c1-1.3 2-3 2-6.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M9.5 19.5a2.5 2.5 0 0 0 5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
