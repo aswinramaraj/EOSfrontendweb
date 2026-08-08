@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalNumber, optionalText } from "./field-helpers";
+import { optionalNumber, optionalText } from "@/shared/lib/zod-helpers";
 
 export const rackFormSchema = z.object({
   rack_code: z.string().trim().min(1, "Rack code is required").max(30),

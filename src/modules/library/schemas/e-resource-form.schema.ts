@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalNumber } from "./field-helpers";
+import { optionalNumber } from "@/shared/lib/zod-helpers";
 
 export const eResourceFormSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(255),

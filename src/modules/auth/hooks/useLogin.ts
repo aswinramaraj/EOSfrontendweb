@@ -11,6 +11,7 @@ import type { QuickRole, Role } from "../types";
 const ROLE_HOME: Partial<Record<Role, string>> = {
   admin: "/admin",
   library: "/library",
+  gate_warden: "/hostel",
 };
 
 // The backend's /auth/login has no role parameter — it returns whatever role
