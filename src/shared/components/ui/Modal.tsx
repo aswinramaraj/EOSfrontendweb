@@ -33,7 +33,7 @@ export function Modal({ open, onClose, title, children, widthClassName = "max-w-
         // backdrop click target to hook into.
         if (e.target === dialogRef.current) onClose();
       }}
-      className={`w-full rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-black/30 ${widthClassName}`}
+      className={`m-auto w-full rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-black/30 ${widthClassName}`}
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <h3 className="text-base font-bold text-slate-900">{title}</h3>
