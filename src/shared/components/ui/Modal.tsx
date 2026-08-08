@@ -43,9 +43,6 @@ export function Modal({
         // backdrop click target to hook into.
         if (e.target === dialogRef.current) onClose();
       }}
-<<<<<<< HEAD
-      className={`m-auto w-full rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-black/30 ${widthClassName}`}
-=======
       // Centered via fixed + translate rather than the UA `dialog:modal`
       // default (`inset: 0; margin: auto;`) — that default turned out to be
       // unreliable here (dialogs were rendering pinned to the viewport's
@@ -55,7 +52,6 @@ export function Modal({
       // table) scrolling inside the dialog instead of overflowing the
       // viewport and looking like a positioning bug.
       className={`fixed left-1/2 top-1/2 m-0 max-h-[85vh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-black/30 ${widthClassName}`}
->>>>>>> 19e070602fb023df9af1493b3428648b3e1bf4a1
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
