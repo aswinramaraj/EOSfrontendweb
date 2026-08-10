@@ -1,0 +1,11 @@
+export interface Paginated<T> {
+  data: T[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export type VerificationStatus = "awaiting_documents" | "under_review" | "verified";

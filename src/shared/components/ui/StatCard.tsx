@@ -20,9 +20,11 @@ interface StatCardProps {
   value: string | number;
   icon?: ComponentType<SVGProps<SVGSVGElement>>;
   tone?: StatCardTone;
+  /** Small muted line under the value — e.g. "+11.4% vs last year". */
+  caption?: string;
 }
 
-export function StatCard({ label, value, icon: Icon, tone = "blue" }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, tone = "blue", caption }: StatCardProps) {
   return (
     <div className="flex min-h-32.5 flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-start justify-between gap-3">
@@ -33,7 +35,10 @@ export function StatCard({ label, value, icon: Icon, tone = "blue" }: StatCardPr
           </span>
         )}
       </div>
-      <span className="text-3xl font-bold tracking-tight text-slate-900">{value}</span>
+      <div>
+        <span className="text-3xl font-bold tracking-tight text-slate-900">{value}</span>
+        {caption && <p className="mt-0.5 text-xs text-slate-400">{caption}</p>}
+      </div>
     </div>
   );
 }

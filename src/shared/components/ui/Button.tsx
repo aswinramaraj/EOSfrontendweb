@@ -1,6 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
+type Variant = "primary" | "secondary" | "danger" | "dangerSolid" | "ghost";
 type Size = "sm" | "md";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -15,6 +15,7 @@ const VARIANT_STYLES: Record<Variant, string> = {
     "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:text-slate-400",
   danger:
     "border border-red-200 bg-white text-danger hover:bg-danger-tint disabled:text-red-300",
+  dangerSolid: "bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300",
   ghost: "text-primary-strong hover:bg-primary-tint disabled:text-blue-300",
 };
 
@@ -32,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isPending}
-        className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:cursor-not-allowed ${VARIANT_STYLES[variant]} ${SIZE_STYLES[size]} ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors disabled:cursor-not-allowed ${VARIANT_STYLES[variant]} ${SIZE_STYLES[size]} ${className}`}
         {...rest}
       >
         {isPending && (
