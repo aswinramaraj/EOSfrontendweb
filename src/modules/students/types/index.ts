@@ -24,9 +24,19 @@ export interface StudentListItem {
   quota: { id: number; name: string } | null;
 }
 
+export interface StudentAddress {
+  address_type: string;
+  address_line: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+}
+
 /**
  * GET /students/:id/edit-profile — mirrors AdminUpdateStudentDto's field list
- * exactly (current value of every field the edit form can write).
+ * (current value of every field the edit form can write), plus `addresses`
+ * for the Addresses section — the one relation this endpoint includes
+ * beyond the students table's own columns.
  */
 export interface StudentEditProfile {
   roll_no: string | null;
@@ -57,16 +67,30 @@ export interface StudentEditProfile {
   is_diff_abled: boolean;
   diff_abled_info: string | null;
   photo_url: string | null;
+  addresses: StudentAddress[];
 }
 
 // class_id can only be assigned a real value through PATCH /students/:id
 // (AdminUpdateStudentDto has no way to explicitly clear it back to null) —
-// everything else can be omitted (unchanged) or overwritten. photo_url isn't
-// writable through this endpoint at all — it only ever changes via the
-// dedicated photo upload/delete endpoints.
-export type UpdateStudentProfileInput = Partial<Omit<StudentEditProfile, "class_id" | "photo_url">> & {
+// everything else can be omitted (unchanged) or overwritten. photo_url and
+// addresses aren't writable through this endpoint at all — photo_url only
+// ever changes via the dedicated photo upload/delete endpoints, and
+// addresses have their own PATCH /students/:id/addresses (see
+// UpdateStudentAddressesInput below).
+export type UpdateStudentProfileInput = Partial<Omit<StudentEditProfile, "class_id" | "photo_url" | "addresses">> & {
   class_id?: number;
 };
+
+/** PATCH /students/:id/addresses — upserts by (student_id, address_type); "permanent"/"temporary" only. */
+export interface UpdateStudentAddressesInput {
+  addresses: Array<{
+    address_type: string;
+    address_line?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  }>;
+}
 
 export interface StudentFamily {
   father_name: string | null;
@@ -101,13 +125,7 @@ export interface StudentProfileDetails {
   community: string | null;
   mother_tongue: string | null;
   is_diff_abled: boolean | null;
-  addresses: Array<{
-    address_type: string;
-    address_line: string | null;
-    city: string | null;
-    state: string | null;
-    pincode: string | null;
-  }>;
+  addresses: StudentAddress[];
   identity_marks: Array<{ mark_number: number; description: string }>;
   family_details: StudentFamily | null;
   contacts: {

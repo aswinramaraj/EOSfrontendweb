@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { studentsService } from "../services/students.service";
-import type { ListStudentsParams, UpdateStudentProfileInput } from "../types";
+import type { ListStudentsParams, UpdateStudentAddressesInput, UpdateStudentProfileInput } from "../types";
 
 export function useStudents(params: ListStudentsParams) {
   return useQuery({
@@ -42,6 +42,18 @@ export function useUpdateStudentProfile() {
       queryClient.invalidateQueries({ queryKey: ["students", "detail", id] });
       queryClient.invalidateQueries({ queryKey: ["students", "edit-profile", id] });
       queryClient.invalidateQueries({ queryKey: ["students", "list"] });
+    },
+  });
+}
+
+export function useUpdateStudentAddresses() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: UpdateStudentAddressesInput }) =>
+      studentsService.updateAddresses(id, input),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["students", "edit-profile", id] });
+      queryClient.invalidateQueries({ queryKey: ["students", "profile-details", id] });
     },
   });
 }

@@ -17,10 +17,11 @@ import { avatarTint, initials } from "../lib/format";
 import {
   useDeleteStudentPhoto,
   useStudentEditProfile,
+  useUpdateStudentAddresses,
   useUpdateStudentProfile,
   useUploadStudentPhoto,
 } from "../hooks/useStudents";
-import type { StudentEditProfile, UpdateStudentProfileInput } from "../types";
+import type { StudentEditProfile, UpdateStudentAddressesInput, UpdateStudentProfileInput } from "../types";
 
 const GENDER_OPTIONS = ["Male", "Female", "Other"];
 const BLOOD_GROUP_OPTIONS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
@@ -77,9 +78,23 @@ interface FormState {
   exserviceman_info: string;
   is_diff_abled: boolean;
   diff_abled_info: string;
+  // Addresses aren't part of AdminUpdateStudentDto — they save through their
+  // own PATCH /students/:id/addresses (see toAddressesPayload) — but live in
+  // this same FormState so the modal has one "Save changes" action instead
+  // of a second, confusing save button just for these eight fields.
+  perm_address_line: string;
+  perm_city: string;
+  perm_state: string;
+  perm_pincode: string;
+  temp_address_line: string;
+  temp_city: string;
+  temp_state: string;
+  temp_pincode: string;
 }
 
 function toFormState(p: StudentEditProfile): FormState {
+  const perm = p.addresses.find((a) => a.address_type === "permanent");
+  const temp = p.addresses.find((a) => a.address_type === "temporary");
   return {
     roll_no: p.roll_no ?? "",
     register_no: p.register_no ?? "",
@@ -108,6 +123,14 @@ function toFormState(p: StudentEditProfile): FormState {
     exserviceman_info: p.exserviceman_info ?? "",
     is_diff_abled: p.is_diff_abled,
     diff_abled_info: p.diff_abled_info ?? "",
+    perm_address_line: perm?.address_line ?? "",
+    perm_city: perm?.city ?? "",
+    perm_state: perm?.state ?? "",
+    perm_pincode: perm?.pincode ?? "",
+    temp_address_line: temp?.address_line ?? "",
+    temp_city: temp?.city ?? "",
+    temp_state: temp?.state ?? "",
+    temp_pincode: temp?.pincode ?? "",
   };
 }
 
@@ -129,6 +152,13 @@ function validate(form: FormState): Record<string, string> {
   if (!form.course_id) errors.course_id = "Required.";
   if (!form.quota_id) errors.quota_id = "Required.";
   if (!form.batch_id) errors.batch_id = "Required.";
+  // Same rule the admission wizard enforces for these same two fields.
+  if (form.perm_pincode && !/^\d{6}$/.test(form.perm_pincode)) {
+    errors.perm_pincode = "Exactly 6 digits.";
+  }
+  if (form.temp_pincode && !/^\d{6}$/.test(form.temp_pincode)) {
+    errors.temp_pincode = "Exactly 6 digits.";
+  }
   return errors;
 }
 
@@ -172,6 +202,35 @@ function toPayload(form: FormState): UpdateStudentProfileInput {
       : undefined,
     is_diff_abled: form.is_diff_abled,
     diff_abled_info: form.is_diff_abled ? str(form.diff_abled_info) : undefined,
+  };
+}
+
+/**
+ * Always sends both rows, even if entirely blank — a blank permanent
+ * address here means "clear whatever was there before", which is a real,
+ * intentional action (fixing a bad admission-time value), not something to
+ * silently skip. The backend upserts by (student_id, address_type), so this
+ * never creates duplicates.
+ */
+function toAddressesPayload(form: FormState): UpdateStudentAddressesInput {
+  const str = (v: string) => v.trim() || undefined;
+  return {
+    addresses: [
+      {
+        address_type: "permanent",
+        address_line: str(form.perm_address_line),
+        city: str(form.perm_city),
+        state: str(form.perm_state),
+        pincode: str(form.perm_pincode),
+      },
+      {
+        address_type: "temporary",
+        address_line: str(form.temp_address_line),
+        city: str(form.temp_city),
+        state: str(form.temp_state),
+        pincode: str(form.temp_pincode),
+      },
+    ],
   };
 }
 
@@ -238,6 +297,7 @@ export function EditProfileModal({
   const { data: quotas } = useQuotas();
   const { data: classes } = useClasses();
   const updateProfile = useUpdateStudentProfile();
+  const updateAddresses = useUpdateStudentAddresses();
   const uploadPhoto = useUploadStudentPhoto();
   const deletePhoto = useDeleteStudentPhoto();
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -271,10 +331,10 @@ export function EditProfileModal({
     if (Object.keys(nextErrors).length > 0) return;
 
     try {
-      await updateProfile.mutateAsync({
-        id: studentId,
-        input: toPayload(form),
-      });
+      await Promise.all([
+        updateProfile.mutateAsync({ id: studentId, input: toPayload(form) }),
+        updateAddresses.mutateAsync({ id: studentId, input: toAddressesPayload(form) }),
+      ]);
       show("Profile updated.", "success");
       onClose();
     } catch (err) {
@@ -690,6 +750,105 @@ export function EditProfileModal({
             </div>
 
             <div>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Permanent address
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Address">
+                  <textarea
+                    value={form.perm_address_line}
+                    maxLength={500}
+                    rows={2}
+                    onChange={(e) => patch({ perm_address_line: e.target.value })}
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </Field>
+                <Field label="City">
+                  <TextInput
+                    value={form.perm_city}
+                    maxLength={100}
+                    onChange={(e) => patch({ perm_city: e.target.value })}
+                  />
+                </Field>
+                <Field label="State">
+                  <TextInput
+                    value={form.perm_state}
+                    maxLength={100}
+                    placeholder="Tamil Nadu"
+                    onChange={(e) => patch({ perm_state: e.target.value })}
+                  />
+                </Field>
+                <Field label="PIN code" error={errors.perm_pincode}>
+                  <TextInput
+                    value={form.perm_pincode}
+                    maxLength={6}
+                    placeholder="641062"
+                    hasError={!!errors.perm_pincode}
+                    onChange={(e) => patch({ perm_pincode: e.target.value })}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Temporary address
+                </p>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-blue-700 hover:underline"
+                  onClick={() =>
+                    patch({
+                      temp_address_line: form.perm_address_line,
+                      temp_city: form.perm_city,
+                      temp_state: form.perm_state,
+                      temp_pincode: form.perm_pincode,
+                    })
+                  }
+                >
+                  Same as permanent
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Address">
+                  <textarea
+                    value={form.temp_address_line}
+                    maxLength={500}
+                    rows={2}
+                    onChange={(e) => patch({ temp_address_line: e.target.value })}
+                    className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </Field>
+                <Field label="City">
+                  <TextInput
+                    value={form.temp_city}
+                    maxLength={100}
+                    onChange={(e) => patch({ temp_city: e.target.value })}
+                  />
+                </Field>
+                <Field label="State">
+                  <TextInput
+                    value={form.temp_state}
+                    maxLength={100}
+                    onChange={(e) => patch({ temp_state: e.target.value })}
+                  />
+                </Field>
+                <Field label="PIN code" error={errors.temp_pincode}>
+                  <TextInput
+                    value={form.temp_pincode}
+                    maxLength={6}
+                    placeholder="641062"
+                    hasError={!!errors.temp_pincode}
+                    onChange={(e) => patch({ temp_pincode: e.target.value })}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Special categories
               </p>
@@ -734,13 +893,13 @@ export function EditProfileModal({
               <Button
                 variant="secondary"
                 onClick={onClose}
-                disabled={updateProfile.isPending}
+                disabled={updateProfile.isPending || updateAddresses.isPending}
               >
                 Cancel
               </Button>
               <Button
                 variant="primary"
-                isPending={updateProfile.isPending}
+                isPending={updateProfile.isPending || updateAddresses.isPending}
                 onClick={handleSave}
               >
                 Save changes

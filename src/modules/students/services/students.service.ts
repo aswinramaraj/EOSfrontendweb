@@ -3,6 +3,7 @@ import { requireToken } from "@/shared/lib/auth-token";
 import { buildQuery } from "@/shared/lib/query-string";
 import type {
   ListStudentsParams,
+  StudentAddress,
   StudentAnnouncement,
   StudentAttendanceSummary,
   StudentAttendanceTerm,
@@ -23,6 +24,7 @@ import type {
   StudentSubject,
   StudentsListResponse,
   StudentTransport,
+  UpdateStudentAddressesInput,
   UpdateStudentProfileInput,
 } from "../types";
 
@@ -45,6 +47,9 @@ export const studentsService = {
   },
   updateProfile(id: number, input: UpdateStudentProfileInput): Promise<StudentListItem> {
     return apiClient.patch<StudentListItem>(`/students/${id}`, input, requireToken());
+  },
+  updateAddresses(id: number, input: UpdateStudentAddressesInput): Promise<{ addresses: StudentAddress[] }> {
+    return apiClient.patch<{ addresses: StudentAddress[] }>(`/students/${id}/addresses`, input, requireToken());
   },
   uploadPhoto(id: number, file: File): Promise<{ photo_url: string; photo_uploaded_at: string }> {
     const formData = new FormData();
