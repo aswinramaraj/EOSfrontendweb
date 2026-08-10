@@ -50,4 +50,4 @@ admin-faculty-endpoints.md
 src/app/admin/page.tsx
 
 faculty-import-sample.csv
-placement-ui
+hr-ui

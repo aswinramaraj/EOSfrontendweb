@@ -149,6 +149,7 @@ const ATTENDANCE_STATUS_STYLES: Record<string, { label: string; tone: PillTone }
   absent: { label: "Absent", tone: "red" },
   on_duty: { label: "On Duty", tone: "blue" },
   on_leave: { label: "On Leave", tone: "blue" },
+  on_vacation: { label: "On Vacation", tone: "blue" },
   weekly_off: { label: "Weekly Off", tone: "slate" },
   holiday: { label: "Holiday", tone: "slate" },
 };
@@ -454,7 +455,9 @@ export default function FacultyDetailPage() {
                               {attendance.overall.full_days +
                                 attendance.overall.half_days +
                                 attendance.overall.absent +
-                                attendance.overall.on_duty_or_leave}
+                                attendance.overall.on_leave +
+                                attendance.overall.on_duty +
+                                attendance.overall.on_vacation}
                             </span>
                           )}
                         </button>
@@ -673,15 +676,22 @@ export default function FacultyDetailPage() {
                           <tr key={doc.id} className="border-b border-slate-100 last:border-b-0">
                             <td className="px-4 py-3 text-slate-700">{doc.document_type}</td>
                             <td className="px-4 py-3 text-slate-700">
-                              <a
-                                href={doc.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 text-blue-700 hover:underline"
-                              >
-                                <DownloadIcon className="h-3.5 w-3.5" />
-                                {doc.file_name}
-                              </a>
+                              {doc.url ? (
+                                <a
+                                  href={doc.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-blue-700 hover:underline"
+                                >
+                                  <DownloadIcon className="h-3.5 w-3.5" />
+                                  {doc.file_name}
+                                </a>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-slate-400">
+                                  <DownloadIcon className="h-3.5 w-3.5" />
+                                  {doc.file_name} (unavailable)
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-slate-500">{formatDate(doc.uploaded_at)}</td>
                             <td className="px-4 py-3 text-right">
@@ -779,8 +789,14 @@ export default function FacultyDetailPage() {
                       />
                       <MiniStat label="Absent" value={String(attendance.overall.absent)} caption="this year" tone="red" />
                       <MiniStat
-                        label="On duty / leave"
-                        value={String(attendance.overall.on_duty_or_leave)}
+                        label="On leave"
+                        value={String(attendance.overall.on_leave)}
+                        caption="counts against %, this year"
+                        tone="amber"
+                      />
+                      <MiniStat
+                        label="On duty / vacation"
+                        value={String(attendance.overall.on_duty + attendance.overall.on_vacation)}
                         caption="excused, this year"
                         tone="blue"
                       />

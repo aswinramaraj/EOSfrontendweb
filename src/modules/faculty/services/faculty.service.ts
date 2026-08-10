@@ -10,6 +10,8 @@ import type {
   FacultyAttendanceSummary,
   FacultyListParams,
   FacultyListResponse,
+  MarkFacultyAttendanceInput,
+  MarkFacultyAttendanceResult,
   UpdateFacultyInput,
 } from "../types";
 
@@ -43,6 +45,17 @@ export const facultyService = {
   getAttendanceOverview(params: FacultyAttendanceOverviewParams = {}): Promise<FacultyAttendanceOverview> {
     return apiClient.get<FacultyAttendanceOverview>(
       `${BASE}/attendance/overview${buildQuery(params)}`,
+      requireToken(),
+    );
+  },
+  markAttendance(
+    id: number,
+    date: string,
+    input: MarkFacultyAttendanceInput,
+  ): Promise<MarkFacultyAttendanceResult> {
+    return apiClient.patch<MarkFacultyAttendanceResult>(
+      `${BASE}/${id}/attendance/${date}`,
+      input,
       requireToken(),
     );
   },

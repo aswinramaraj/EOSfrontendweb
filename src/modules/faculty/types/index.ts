@@ -97,8 +97,10 @@ export interface FacultyDocument {
   document_type: string;
   file_name: string;
   uploaded_at: string;
-  /** Signed URL — short-lived (the documents bucket is private); re-fetch the list to refresh it. */
-  url: string;
+  /** Signed URL — short-lived (the documents bucket is private); re-fetch the
+   *  list to refresh it. Null when the underlying file object couldn't be
+   *  found in storage (e.g. a record with no real upload behind it). */
+  url: string | null;
 }
 
 export interface FacultyAttendanceDay {
@@ -113,8 +115,36 @@ export interface FacultyAttendanceStats {
   full_days: number;
   half_days: number;
   absent: number;
-  on_duty_or_leave: number;
+  // Vacation and OD are excused — excluded from the % calculation entirely.
+  // Every other kind of approved leave (on_leave) counts against it exactly
+  // like an unexplained absence.
+  on_leave: number;
+  on_duty: number;
+  on_vacation: number;
   attendance_percentage: number;
+}
+
+export type FacultyAttendanceStatus =
+  | "full_day"
+  | "half_day"
+  | "absent"
+  | "on_duty"
+  | "on_leave"
+  | "weekly_off"
+  | "holiday";
+
+export interface MarkFacultyAttendanceInput {
+  status: FacultyAttendanceStatus;
+  punch_in?: string;
+  punch_out?: string;
+}
+
+export interface MarkFacultyAttendanceResult {
+  faculty_id: number;
+  date: string;
+  status: FacultyAttendanceStatus;
+  punch_in: string | null;
+  punch_out: string | null;
 }
 
 export interface FacultyAttendanceMonth extends FacultyAttendanceStats {
@@ -131,10 +161,13 @@ export interface FacultyAttendanceSummary {
 
 export interface FacultyAttendanceOverviewRow extends FacultyAttendanceStats {
   faculty_id: number;
+  prefix?: string | null;
   first_name: string;
   last_name: string;
   profile_url?: string | null;
   department: FacultyDepartmentRef | null;
+  today_status?: string | null;
+  is_unaccounted_absent_today?: boolean;
 }
 
 export interface FacultyAttendanceOverview {

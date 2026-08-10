@@ -124,7 +124,19 @@ function fieldGrid(children: React.ReactNode) {
   return <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">{children}</div>;
 }
 
-export function FacultyCreateWizard() {
+interface FacultyCreateWizardProps {
+  /** Where "Cancel"/"Back to Faculty List"/"View Faculty" land — lets HR's
+   *  wizard stay under /hr/... instead of hardcoding the admin route. */
+  basePath?: string;
+  /** localStorage key for the autosaved draft — kept separate per portal so
+   *  an in-progress Admin draft never leaks into HR's wizard or vice versa. */
+  draftKey?: string;
+}
+
+export function FacultyCreateWizard({
+  basePath = "/admin/faculty",
+  draftKey = CREATE_DRAFT_KEY,
+}: FacultyCreateWizardProps = {}) {
   const router = useRouter();
   const { show } = useToast();
   const { data: departments } = useDepartments();
@@ -166,7 +178,7 @@ export function FacultyCreateWizard() {
     resolver: zodResolver(facultyWizardSchema),
     // Restores an in-progress draft (see the autosave effect below) so a
     // network drop or closed tab doesn't mean re-typing the whole form.
-    defaultValues: getDraft<FacultyWizardValues>(CREATE_DRAFT_KEY) ?? DEFAULT_VALUES,
+    defaultValues: getDraft<FacultyWizardValues>(draftKey) ?? DEFAULT_VALUES,
     // Errors only ever appear via the explicit trigger() calls in goToStep/
     // handleCreate below (this wizard doesn't use RHF's own handleSubmit),
     // so `reValidateMode` has no lifecycle to hook into — it only activates
@@ -200,7 +212,7 @@ export function FacultyCreateWizard() {
   // a lazy useState initializer rather than re-reading localStorage here so
   // it only ever reflects what was there when the form first loaded, not
   // what's been autosaved since.
-  const [hadDraft] = useState(() => getDraft<FacultyWizardValues>(CREATE_DRAFT_KEY) !== null);
+  const [hadDraft] = useState(() => getDraft<FacultyWizardValues>(draftKey) !== null);
   useEffect(() => {
     if (hadDraft) show("Restored your unsaved draft from earlier.", "info");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,11 +224,11 @@ export function FacultyCreateWizard() {
   const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
-    draftSaveTimer.current = setTimeout(() => saveDraft(CREATE_DRAFT_KEY, values), 500);
+    draftSaveTimer.current = setTimeout(() => saveDraft(draftKey, values), 500);
     return () => {
       if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
     };
-  }, [values]);
+  }, [values, draftKey]);
 
   function stepperSubtext(stepId: string, index: number) {
     if (index === WIZARD_STEPS.length - 1) return "final step";
@@ -274,8 +286,8 @@ export function FacultyCreateWizard() {
     if (anyFieldTouched) {
       setCancelConfirmOpen(true);
     } else {
-      clearDraft(CREATE_DRAFT_KEY);
-      router.push("/admin/faculty");
+      clearDraft(draftKey);
+      router.push(basePath);
     }
   }
 
@@ -395,7 +407,7 @@ export function FacultyCreateWizard() {
 
     createFaculty.mutate(payload, {
       onSuccess: async (faculty) => {
-        clearDraft(CREATE_DRAFT_KEY);
+        clearDraft(draftKey);
         setCreatedFaculty(faculty);
 
         const uploads: Promise<unknown>[] = [];
@@ -440,13 +452,13 @@ export function FacultyCreateWizard() {
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Link
-            href={`/admin/faculty/${createdFaculty.id}`}
+            href={`${basePath}/${createdFaculty.id}`}
             className="rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
           >
             View Faculty
           </Link>
           <Link
-            href="/admin/faculty"
+            href={basePath}
             className="rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Back to Faculty List
@@ -1148,8 +1160,8 @@ export function FacultyCreateWizard() {
         confirmLabel="Discard"
         tone="danger"
         onConfirm={() => {
-          clearDraft(CREATE_DRAFT_KEY);
-          router.push("/admin/faculty");
+          clearDraft(draftKey);
+          router.push(basePath);
         }}
         onClose={() => setCancelConfirmOpen(false)}
       />
