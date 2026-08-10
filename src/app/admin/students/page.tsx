@@ -9,17 +9,22 @@ import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { StatusPill } from "@/shared/components/ui/StatusPill";
 import { DataTable, type DataTableColumn } from "@/shared/components/ui/DataTable";
 import { PaginationBar } from "@/shared/components/ui/PaginationBar";
+import { Drawer } from "@/shared/components/ui/Drawer";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
 import { ApiError } from "@/shared/lib/api-client";
 import {
+  ActivityIcon,
   AlertTriangleIcon,
   BusIcon,
   ChevronRightIcon,
   DownloadIcon,
+  EyeIcon,
   HomeIcon,
   IdCardIcon,
+  PencilIcon,
   PeopleIcon,
   PersonIcon,
+  SendIcon,
   StarIcon,
   UploadIcon,
   UserPlusIcon,
@@ -41,6 +46,7 @@ const COLUMN_OPTIONS: ColumnOption[] = [
   { key: "status", label: "Status" },
   { key: "contact", label: "Contact" },
   { key: "admission_date", label: "Admitted" },
+  { key: "actions", label: "Actions", locked: true },
 ];
 
 interface Tab {
@@ -59,6 +65,26 @@ const TABS: Tab[] = [
   { id: "final-year", label: "Final year", filters: {}, soonReason: "Needs a per-student study-year field — not in the schema yet" },
 ];
 
+/** Matches the reference drawer's headline metric tiles — shown, disabled, since none of the three exist as per-student data yet. */
+function MetricBox({ label, reason }: { label: string; reason: string }) {
+  return (
+    <div className="rounded-lg border border-slate-100 bg-slate-50 p-3" title={reason}>
+      <p className="text-[11px] text-slate-400">{label}</p>
+      <p className="mt-0.5 text-lg font-semibold text-slate-300">—</p>
+    </div>
+  );
+}
+
+/** Matches the reference's `.kv-row` (dt fixed at 200px, dd fills the rest, hairline between rows). */
+function KvRow({ label, value, muted, reason }: { label: string; value: string; muted?: boolean; reason?: string }) {
+  return (
+    <div className="flex gap-4 border-b border-slate-100 py-3 last:border-b-0" title={reason}>
+      <dt className="w-[200px] shrink-0 text-sm text-slate-400">{label}</dt>
+      <dd className={`min-w-0 text-sm ${muted ? "text-slate-300" : "text-slate-700"}`}>{value}</dd>
+    </div>
+  );
+}
+
 export default function AdminStudentsPage() {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query);
@@ -69,6 +95,7 @@ export default function AdminStudentsPage() {
     () => new Set(COLUMN_OPTIONS.map((c) => c.key)),
   );
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [quickViewRow, setQuickViewRow] = useState<StudentListItem | null>(null);
 
   const params: ListStudentsParams = {
     q: debouncedQuery || undefined,
@@ -147,10 +174,15 @@ export default function AdminStudentsPage() {
         return (
           <div className="flex items-center gap-3">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-              style={{ background: tint.bg, color: tint.fg }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold"
+              style={row.photo_url ? undefined : { background: tint.bg, color: tint.fg }}
             >
-              {initials(row.first_name, row.last_name)}
+              {row.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a Supabase Storage URL, not a local/optimizable asset
+                <img src={row.photo_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initials(row.first_name, row.last_name)
+              )}
             </span>
             <div className="min-w-0">
               <p className="truncate font-medium text-slate-900">{studentName(row.first_name, row.last_name)}</p>
@@ -214,6 +246,42 @@ export default function AdminStudentsPage() {
       align: "right",
       render: (row) => <span className="text-slate-500">{formatDate(row.admission_date)}</span>,
     },
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            title="Quick view"
+            aria-label={`Quick view ${studentName(row.first_name, row.last_name)}`}
+            onClick={() => setQuickViewRow(row)}
+            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          >
+            <EyeIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            disabled
+            title="Edit — student edit page not built yet"
+            aria-label={`Edit ${studentName(row.first_name, row.last_name)}`}
+            className="cursor-not-allowed rounded-md p-1.5 text-slate-300"
+          >
+            <PencilIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            disabled
+            title="Timeline — no per-student activity endpoint yet"
+            aria-label={`Timeline for ${studentName(row.first_name, row.last_name)}`}
+            className="cursor-not-allowed rounded-md p-1.5 text-slate-300"
+          >
+            <ActivityIcon className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -249,19 +317,24 @@ export default function AdminStudentsPage() {
             >
               <IdCardIcon className="h-4 w-4" /> ID cards
             </Button>
-            <Button variant="primary" disabled title="Admit student — routes through SOA admissions, not built yet">
-              <UserPlusIcon className="h-4 w-4" /> Admit student
-            </Button>
+            <Link href="/admin/students/admit">
+              <Button variant="primary">
+                <UserPlusIcon className="h-4 w-4" /> Admit student
+              </Button>
+            </Link>
           </div>
         }
       />
 
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Total in view" value={total.data ?? "…"} icon={PeopleIcon} />
-        <StatCard label="Active" value={active.data ?? "…"} icon={PersonIcon} />
-        <StatCard label="Inactive" value={inactive.data ?? "…"} icon={AlertTriangleIcon} />
-        <StatCard label="Hostellers" value={hostellers.data ?? "…"} icon={HomeIcon} />
-        <StatCard label="Day scholars" value={dayscholars.data ?? "…"} icon={BusIcon} />
+        <StatCard label="Total in view" value={total.data ?? "…"} icon={PeopleIcon} tone="blue" />
+        <StatCard label="Active" value={active.data ?? "…"} icon={PersonIcon} tone="green" />
+        {/* "slate", not red/amber — matches this same page's own StatusPill
+            convention where inactive renders as a neutral gray pill, not an
+            alert color; an inactive count isn't inherently a problem. */}
+        <StatCard label="Inactive" value={inactive.data ?? "…"} icon={AlertTriangleIcon} tone="slate" />
+        <StatCard label="Hostellers" value={hostellers.data ?? "…"} icon={HomeIcon} tone="slate" />
+        <StatCard label="Day scholars" value={dayscholars.data ?? "…"} icon={BusIcon} tone="slate" />
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -337,10 +410,109 @@ export default function AdminStudentsPage() {
           allSelected: allOnPageSelected,
           someSelected: someOnPageSelected,
         }}
+        onRowClick={setQuickViewRow}
       />
       {data && (
         <PaginationBar page={data.meta.page} pageSize={data.meta.limit} total={data.meta.total} onPageChange={goToPage} />
       )}
+
+      <Drawer
+        open={quickViewRow !== null}
+        onClose={() => setQuickViewRow(null)}
+        eyebrow={quickViewRow?.roll_no ?? quickViewRow?.student_id_no ?? undefined}
+        title={quickViewRow ? studentName(quickViewRow.first_name, quickViewRow.last_name) : ""}
+        headActions={
+          quickViewRow && (
+            <Link href={`/admin/students/${quickViewRow.id}`}>
+              <Button variant="secondary" size="sm">
+                Full profile
+              </Button>
+            </Link>
+          )
+        }
+        footer={
+          quickViewRow && (
+            <>
+              <Link href={`/admin/students/${quickViewRow.id}`} className="grow">
+                <Button variant="primary" className="w-full justify-center">
+                  Open full profile
+                </Button>
+              </Link>
+              <Button variant="secondary" disabled title="Notifications — no messaging backend yet" aria-label="Send notification">
+                <SendIcon className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" disabled title="Edit — student edit page not built yet" aria-label="Edit student">
+                <PencilIcon className="h-4 w-4" />
+              </Button>
+            </>
+          )
+        }
+      >
+        {quickViewRow && (
+          <div className="flex flex-col gap-5">
+            <div className="flex gap-4">
+              <span
+                className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl text-2xl font-semibold"
+                style={
+                  quickViewRow.photo_url
+                    ? undefined
+                    : { background: avatarTint(quickViewRow.id).bg, color: avatarTint(quickViewRow.id).fg }
+                }
+              >
+                {quickViewRow.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a Supabase Storage URL, not a local/optimizable asset
+                  <img src={quickViewRow.photo_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials(quickViewRow.first_name, quickViewRow.last_name)
+                )}
+              </span>
+              <div className="flex grow flex-col gap-2">
+                <div>
+                  <StatusPill tone={quickViewRow.status === "active" ? "green" : "slate"}>
+                    {quickViewRow.status === "active" ? "Active" : "Inactive"}
+                  </StatusPill>
+                </div>
+                <p className="text-sm text-slate-500">{quickViewRow.department?.name ?? "—"}</p>
+                <p className="text-xs text-slate-400">
+                  {quickViewRow.course?.name ?? "—"}
+                  {quickViewRow.class?.section ? ` · Section ${quickViewRow.class.section}` : ""}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <MetricBox label="Attendance" reason="No attendance-summary endpoint yet" />
+              <MetricBox label="CGPA" reason="No marks/grades module yet" />
+              <MetricBox label="Arrears" reason="No marks/grades module yet" />
+            </div>
+
+            <hr className="border-slate-200" />
+
+            <dl className="flex flex-col">
+              <KvRow label="Register number" value={quickViewRow.register_no ?? "—"} />
+              <KvRow label="Batch" value={quickViewRow.batch?.name ?? "—"} />
+              <KvRow label="Quota" value={quickViewRow.quota?.name ?? "—"} />
+              <KvRow label="Class advisor" value="Not tracked" muted reason="No advisor assignment in the schema yet" />
+              <KvRow label="Fees" value="Not tracked" muted reason="No per-student fee-summary endpoint yet" />
+              <KvRow
+                label="Residence"
+                value={quickViewRow.student_type === "hosteller" ? "Hosteller" : "Day scholar"}
+              />
+              <KvRow label="Mobile" value={quickViewRow.phone ?? "—"} />
+              <KvRow label="Email" value={quickViewRow.email} />
+            </dl>
+
+            <hr className="border-slate-200" />
+
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Recent activity</p>
+              <p className="text-sm text-slate-400" title="No per-student activity/audit-log endpoint yet">
+                Not available — no activity feed exists yet.
+              </p>
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
         Showing only what the database actually has today: identity, batch/course/department, residence type,

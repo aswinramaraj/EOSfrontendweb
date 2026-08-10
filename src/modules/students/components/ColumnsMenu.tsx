@@ -65,7 +65,7 @@ export function ColumnsMenu({ columns, visible, onToggle }: ColumnsMenuProps) {
 
       {open && (
         <div
-          className={`absolute z-20 mt-2 w-56 rounded-lg border border-slate-200 bg-white py-2 shadow-lg ${
+          className={`absolute z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-2 shadow-lg ${
             align === "left" ? "left-0" : "right-0"
           }`}
         >

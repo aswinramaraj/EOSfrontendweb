@@ -120,7 +120,7 @@ export default function AdminDashboardPage() {
           tone="info"
           value={activeStudents.data !== undefined ? activeStudents.data : activeStudents.isLoading ? "…" : "—"}
         />
-        <KpiCard label="Admissions this cycle" icon={UserPlusIcon} tone="purple" pendingReason={ADMISSIONS_PENDING} />
+        <KpiCard label="Admissions this cycle" icon={UserPlusIcon} tone="neutral" pendingReason={ADMISSIONS_PENDING} />
         <KpiCard label="Mean attendance" icon={CalendarCheckIcon} tone="warning" pendingReason={ATTENDANCE_PENDING} />
         <KpiCard
           label="Fee collected"
@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
         <KpiCard
           label="Faculty on roll"
           icon={PersonIcon}
-          tone="purple"
+          tone="neutral"
           value={facultyCount.data ? facultyCount.data.meta.total : facultyCount.isLoading ? "…" : "—"}
         />
         <KpiCard label="Graduated" icon={GraduationCapIcon} tone="success" pendingReason={GRADUATED_NOT_TRACKED} />

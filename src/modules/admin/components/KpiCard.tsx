@@ -2,14 +2,18 @@ import type { ComponentType, SVGProps } from "react";
 import { MinusIcon, TrendDownIcon, TrendUpIcon } from "@/shared/components/icons";
 import { Sparkline } from "@/shared/components/ui/charts";
 
-type Tone = "info" | "success" | "warning" | "purple" | "danger";
+// "neutral" (was "purple") — a KPI that's just a count with no inherent
+// positive/negative/at-risk meaning (e.g. Admissions this cycle, Faculty on
+// roll) gets the neutral treatment rather than a decorative extra hue; color
+// here is reserved for tiles that actually carry a status meaning.
+type Tone = "info" | "success" | "warning" | "danger" | "neutral";
 
 const TONE_CLASSES: Record<Tone, string> = {
-  info: "bg-blue-50 text-blue-600",
-  success: "bg-emerald-50 text-emerald-600",
-  warning: "bg-amber-50 text-amber-600",
-  purple: "bg-violet-50 text-violet-600",
-  danger: "bg-red-50 text-red-600",
+  info: "bg-primary-tint text-primary",
+  success: "bg-success-tint text-success",
+  warning: "bg-warning-tint text-warning",
+  danger: "bg-danger-tint text-danger",
+  neutral: "bg-slate-100 text-slate-500",
 };
 
 interface KpiCardProps {
@@ -26,7 +30,7 @@ interface KpiCardProps {
 export function KpiCard({ label, icon: Icon, tone = "info", value, trend, spark, pendingReason }: KpiCardProps) {
   const TrendIcon = trend?.dir === "up" ? TrendUpIcon : trend?.dir === "down" ? TrendDownIcon : MinusIcon;
   const trendColor =
-    trend?.dir === "up" ? "text-emerald-600" : trend?.dir === "down" ? "text-red-600" : "text-slate-400";
+    trend?.dir === "up" ? "text-success" : trend?.dir === "down" ? "text-danger" : "text-slate-400";
 
   return (
     <div

@@ -24,6 +24,7 @@ interface DataTableProps<T> {
   error?: string | null;
   emptyMessage?: string;
   selection?: DataTableSelection<T>;
+  onRowClick?: (row: T) => void;
 }
 
 const SKELETON_ROWS = 5;
@@ -54,11 +55,12 @@ export function DataTable<T>({
   error = null,
   emptyMessage = "No records found.",
   selection,
+  onRowClick,
 }: DataTableProps<T>) {
   const colCount = columns.length + (selection ? 1 : 0);
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-slate-200">
@@ -115,9 +117,13 @@ export function DataTable<T>({
           {!isLoading &&
             !error &&
             rows.map((row, index) => (
-              <tr key={rowKey(row, index)} className="border-b border-slate-100 last:border-b-0">
+              <tr
+                key={rowKey(row, index)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={`border-b border-slate-100 last:border-b-0 ${onRowClick ? "cursor-pointer hover:bg-slate-50" : ""}`}
+              >
                 {selection && (
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       className={CHECKBOX_CLASS}

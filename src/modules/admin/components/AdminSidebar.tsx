@@ -25,7 +25,11 @@ export function AdminSidebar({ mobileOpen, onCloseMobile, collapsed, onToggleCol
       <nav className="flex flex-col gap-1 overflow-y-auto px-4 py-4">
         {ADMIN_NAV.map((group, groupIndex) => (
           <div key={group.label} className="mb-3 flex flex-col gap-0.5">
-            <div className="flex items-center justify-between px-3 pb-1.5 pt-2">
+            <div
+              className={`flex items-center px-3 pb-1.5 pt-2 ${
+                isCollapsedRail ? "justify-center" : "justify-between"
+              }`}
+            >
               {!isCollapsedRail && (
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                   {group.label}
@@ -37,9 +41,7 @@ export function AdminSidebar({ mobileOpen, onCloseMobile, collapsed, onToggleCol
                   onClick={onToggleCollapsed}
                   aria-label={isCollapsedRail ? "Expand navigation" : "Collapse navigation"}
                   title={isCollapsedRail ? "Expand navigation" : "Collapse navigation"}
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600 ${
-                    isCollapsedRail ? "mx-auto" : ""
-                  }`}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
                   {isCollapsedRail ? (
                     <ChevronsRightIcon className="h-4 w-4" />

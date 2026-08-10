@@ -55,7 +55,7 @@ export default function HostelReportsPage() {
     <div>
       <PageHeader title="Reports" description="Statutory and management reports, exportable as PDF or Excel." />
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6">
         <h3 className="text-base font-bold text-slate-900">Build a report</h3>
         <p className="mt-1 text-sm text-slate-500">
           Pick a report and the period. Only records dated between the two dates are exported,
@@ -172,7 +172,7 @@ export default function HostelReportsPage() {
         )}
       </div>
 
-      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="mb-4 text-base font-bold text-slate-900">{table?.title ?? def.label}</h3>
         <DataTable
           columns={columns}

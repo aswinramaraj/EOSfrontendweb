@@ -70,7 +70,7 @@ export default function LibraryReportsPage() {
           ))}
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-base font-bold text-slate-900">{table?.title ?? def.label}</h3>
             <div className="flex items-center gap-2">

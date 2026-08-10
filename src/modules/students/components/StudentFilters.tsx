@@ -44,9 +44,11 @@ export function StudentFilters({ value, onChange, onClearAll }: StudentFiltersPr
         </span>
 
         {/* SelectInput's own <select> is w-full — each wrapper below constrains
-            that to its content width, otherwise every dropdown would stretch
-            to fill this flex row and stack one per line. */}
-        <div className="w-fit">
+            that to its content width (min 150px, matching the reference's
+            `width:auto;min-width:150px` on every filter select), otherwise
+            every dropdown would stretch to fill this flex row and stack one
+            per line. */}
+        <div className="w-fit min-w-[150px]">
           <SelectInput
             name="status"
             value={value.status ?? ""}
@@ -72,7 +74,7 @@ export function StudentFilters({ value, onChange, onClearAll }: StudentFiltersPr
           </SelectInput>
         </div>
 
-        <div className="w-fit">
+        <div className="w-fit min-w-[150px]">
           <SelectInput
             name="department_id"
             value={value.department_id ?? ""}
@@ -87,7 +89,7 @@ export function StudentFilters({ value, onChange, onClearAll }: StudentFiltersPr
           </SelectInput>
         </div>
 
-        <div className="w-fit">
+        <div className="w-fit min-w-[150px]">
           <SelectInput name="year" disabled defaultValue="" title={`Year — ${NOT_REAL} (no per-student study-year field)`}>
             <option value="">Year: All</option>
             <option value="1">Year 1</option>
@@ -97,7 +99,7 @@ export function StudentFilters({ value, onChange, onClearAll }: StudentFiltersPr
           </SelectInput>
         </div>
 
-        <div className="w-fit">
+        <div className="w-fit min-w-[150px]">
           <SelectInput name="fees" disabled defaultValue="" title={`Fees — ${NOT_REAL} (no per-student fee-status endpoint)`}>
             <option value="">Fees: All</option>
             <option value="paid">Paid</option>
@@ -107,7 +109,7 @@ export function StudentFilters({ value, onChange, onClearAll }: StudentFiltersPr
           </SelectInput>
         </div>
 
-        <div className="w-fit">
+        <div className="w-fit min-w-[150px]">
           <SelectInput
             name="attendance"
             disabled
@@ -121,7 +123,7 @@ export function StudentFilters({ value, onChange, onClearAll }: StudentFiltersPr
           </SelectInput>
         </div>
 
-        <div className="w-fit">
+        <div className="w-fit min-w-[150px]">
           <SelectInput
             name="quota_id"
             value={value.quota_id ?? ""}
