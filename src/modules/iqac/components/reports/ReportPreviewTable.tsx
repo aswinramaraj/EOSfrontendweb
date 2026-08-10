@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/shared/components/ui/DataTable";
 import { PaginationBar } from "@/shared/components/ui/PaginationBar";
 import { ApiError } from "@/shared/lib/api-client";
@@ -20,9 +20,14 @@ export function ReportPreviewTable({ type, filters }: ReportPreviewTableProps) {
   // backs the Excel/PDF export, which needs everything) - pagination here
   // is purely a display slice over rows already in memory, reset whenever
   // the date range changes so a stale page number can't outrun new data.
-  useEffect(() => {
+  // Adjusted during render (React docs' pattern for resetting state when a
+  // prop changes) rather than in an effect, which would cause an extra
+  // cascading render.
+  const [prevRange, setPrevRange] = useState({ from: filters.from, to: filters.to });
+  if (prevRange.from !== filters.from || prevRange.to !== filters.to) {
+    setPrevRange({ from: filters.from, to: filters.to });
     setPage(1);
-  }, [filters.from, filters.to]);
+  }
 
   const allRows = table?.rows ?? [];
   const total = allRows.length;

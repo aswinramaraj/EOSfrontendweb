@@ -198,7 +198,7 @@ export function ComplaintsPanel() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="mb-4 text-base font-bold text-slate-900">
           Complaints and feedback <span className="font-normal text-slate-400">· {filtered.length} records</span>
         </h3>

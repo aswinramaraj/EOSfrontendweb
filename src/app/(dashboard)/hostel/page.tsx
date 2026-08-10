@@ -47,7 +47,7 @@ export default function HostelDashboardPage() {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="h-32.5 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+              className="h-32.5 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
             />
           ))}
         </div>

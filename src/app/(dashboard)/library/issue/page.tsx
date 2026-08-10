@@ -98,7 +98,7 @@ export default function IssueBooksPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Student */}
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-slate-900">1. Student</h3>
 
           {!selectedStudent ? (
@@ -175,7 +175,7 @@ export default function IssueBooksPage() {
         </div>
 
         {/* Book */}
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-slate-900">2. Book</h3>
 
           {!selectedBook ? (
@@ -225,7 +225,7 @@ export default function IssueBooksPage() {
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mt-6 flex flex-wrap items-end gap-4 rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="issue-due-date" className="text-sm font-medium text-slate-700">
             Due date

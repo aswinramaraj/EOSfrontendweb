@@ -46,7 +46,7 @@ export default function LibraryDashboardPage() {
           {Array.from({ length: 7 }).map((_, i) => (
             <div
               key={i}
-              className="h-32.5 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+              className="h-32.5 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
             />
           ))}
         </div>

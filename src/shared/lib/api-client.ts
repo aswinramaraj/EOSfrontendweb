@@ -86,6 +86,30 @@ function parseContentDispositionFilename(header: string | null): string | null {
   return match ? match[1] : null;
 }
 
+/**
+ * Multipart upload — deliberately bypasses request()'s JSON Content-Type
+ * header. Setting Content-Type manually for FormData is actually wrong: the
+ * browser needs to generate it itself (it embeds a random multipart
+ * boundary the server parses on), so this is its own small function rather
+ * than a request() option.
+ */
+async function uploadFile<T>(
+  path: string,
+  formData: FormData,
+  token?: string | null,
+): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+
+  if (!res.ok) await throwApiError(res);
+
+  const body = await res.json().catch(() => null);
+  return (body as ApiEnvelope<T>).data;
+}
+
 async function downloadBlob(
   path: string,
   token?: string | null,
@@ -122,9 +146,16 @@ export const apiClient = {
       { method: "PATCH", body: body ? JSON.stringify(body) : undefined },
       token,
     ),
+  put: <T>(path: string, body?: unknown, token?: string | null) =>
+    request<T>(
+      path,
+      { method: "PUT", body: body ? JSON.stringify(body) : undefined },
+      token,
+    ),
   delete: <T>(path: string, token?: string | null) =>
     request<T>(path, { method: "DELETE" }, token),
   postForm: <T>(path: string, formData: FormData, token?: string | null) =>
     requestForm<T>(path, "POST", formData, token),
   downloadBlob,
+  uploadFile,
 };
