@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalNumber, optionalText } from "./field-helpers";
+import { optionalNumber, optionalText } from "@/shared/lib/zod-helpers";
 
 // category_id/total_copies are backend-required, but are still declared
 // via optionalNumber (see its comment) so every numeric field in this form

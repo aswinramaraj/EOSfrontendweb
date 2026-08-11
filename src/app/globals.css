@@ -5,6 +5,32 @@
   --foreground: #171717;
 }
 
+/*
+ * Semantic design tokens — the single source of truth for brand/status color.
+ * Values are deliberately ALIASES of the Tailwind hues already used
+ * pervasively across this app (blue-600/700/50, green-700/50, amber-700/50,
+ * red-700/50 — 70+ call sites outside the shared UI kit alone), not new
+ * literal hex codes. Introducing a slightly-different "brand" blue here
+ * would create two near-identical but technically competing blues across
+ * the app; aliasing the color that's already everywhere gives one real
+ * source of truth with zero visual regression risk. New/updated components
+ * should reach for `bg-primary`, `text-success`, etc. instead of the raw
+ * Tailwind hue scale from here on.
+ */
+@theme {
+  --color-primary: var(--color-blue-600);
+  --color-primary-strong: var(--color-blue-700);
+  --color-primary-stronger: var(--color-blue-800);
+  --color-primary-tint: var(--color-blue-50);
+
+  --color-success: var(--color-green-700);
+  --color-success-tint: var(--color-green-50);
+  --color-warning: var(--color-amber-700);
+  --color-warning-tint: var(--color-amber-50);
+  --color-danger: var(--color-red-700);
+  --color-danger-tint: var(--color-red-50);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -23,27 +49,4 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-}
-
-@keyframes header-glow-sweep {
-  0%,
-  15% {
-    transform: translateX(-150%);
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  65% {
-    opacity: 1;
-  }
-  85%,
-  100% {
-    transform: translateX(500%);
-    opacity: 0;
-  }
-}
-
-.animate-header-glow {
-  animation: header-glow-sweep 5s ease-in-out infinite;
 }

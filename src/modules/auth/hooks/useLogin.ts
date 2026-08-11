@@ -13,6 +13,8 @@ const ROLE_HOME: Partial<Record<Role, string>> = {
   library: "/library",
   placement: "/placement",
   hr_payroll: "/hr",
+  gate_warden: "/hostel",
+  iqac: "/iqac",
 };
 
 // The backend's /auth/login has no role parameter — it returns whatever role

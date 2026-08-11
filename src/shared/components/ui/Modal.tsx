@@ -51,7 +51,7 @@ export function Modal({
       // max-h/overflow-y-auto keeps tall content (e.g. the import wizard's
       // table) scrolling inside the dialog instead of overflowing the
       // viewport and looking like a positioning bug.
-      className={`fixed left-1/2 top-1/2 m-0 max-h-[85vh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-slate-200 p-0 shadow-xl backdrop:bg-black/30 ${widthClassName}`}
+      className={`fixed left-1/2 top-1/2 m-0 max-h-[85vh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-slate-200 p-0 shadow-xl backdrop:bg-black/30 ${widthClassName}`}
     >
       <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
         <div>
