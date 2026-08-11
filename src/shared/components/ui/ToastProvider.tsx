@@ -49,28 +49,43 @@ const DISMISS_AFTER_MS: Record<ToastTone, number> = {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  // Mirrors `toasts` synchronously so a duplicate check can read the current
+  // list without waiting for a render — setState updaters must stay pure, so
+  // the dedup check and the setTimeout side effect both live out here instead.
+  const toastsRef = useRef<Toast[]>([]);
   const nextId = useRef(0);
 
   const dismiss = useCallback((id: number) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) => {
+      const next = current.filter((toast) => toast.id !== id);
+      toastsRef.current = next;
+      return next;
+    });
   }, []);
 
-  const show = useCallback(
-    (message: string, tone: ToastTone = "info") => {
+  const addToast = useCallback(
+    (toast: Omit<Toast, "id">) => {
+      // Repeated clicks on the same stubbed/disabled action (or a fast
+      // double-click on anything) shouldn't pile up N identical toasts.
+      const isDuplicate = toastsRef.current.some(
+        (t) => t.message === toast.message && t.tone === toast.tone && t.title === toast.title,
+      );
+      if (isDuplicate) return;
+
       const id = nextId.current++;
-      setToasts((current) => [...current, { id, message, tone }]);
-      setTimeout(() => dismiss(id), DISMISS_AFTER_MS[tone]);
+      const next = [...toastsRef.current, { id, ...toast }];
+      toastsRef.current = next;
+      setToasts(next);
+      setTimeout(() => dismiss(id), DISMISS_AFTER_MS[toast.tone]);
     },
     [dismiss],
   );
 
+  const show = useCallback((message: string, tone: ToastTone = "info") => addToast({ message, tone }), [addToast]);
+
   const showDetailed = useCallback(
-    (title: string, message: string, tone: ToastTone = "success") => {
-      const id = nextId.current++;
-      setToasts((current) => [...current, { id, title, message, tone }]);
-      setTimeout(() => dismiss(id), DISMISS_AFTER_MS[tone]);
-    },
-    [dismiss],
+    (title: string, message: string, tone: ToastTone = "success") => addToast({ title, message, tone }),
+    [addToast],
   );
 
   return (

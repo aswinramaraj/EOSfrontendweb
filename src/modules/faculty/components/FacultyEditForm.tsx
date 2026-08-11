@@ -159,8 +159,23 @@ function SectionCard({
   );
 }
 
-export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
+interface FacultyEditFormProps {
+  faculty: Faculty;
+  basePath?: string;
+  homeHref?: string;
+  homeLabel?: string;
+  listLabel?: string;
+}
+
+export function FacultyEditForm({
+  faculty,
+  basePath = "/admin/faculty",
+  homeHref = "/admin",
+  homeLabel = "Home",
+  listLabel = "Faculty",
+}: FacultyEditFormProps) {
   const router = useRouter();
+  const profileHref = `${basePath}/${faculty.id}`;
   const { show, showDetailed } = useToast();
   const { data: departments } = useDepartments();
   const updateFaculty = useUpdateFaculty();
@@ -310,7 +325,7 @@ export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
       setCancelConfirmOpen(true);
     } else {
       clearDraft(draftKey);
-      router.push(`/admin/faculty/${faculty.id}`);
+      router.push(profileHref);
     }
   }
 
@@ -365,7 +380,7 @@ export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
       .then(() => {
         clearDraft(draftKey);
         showDetailed("Changes saved", `Record updated for ${fullName(faculty)}.`, "success");
-        router.push(`/admin/faculty/${faculty.id}`);
+        router.push(profileHref);
       })
       .catch((err: unknown) => {
         show(err instanceof ApiError ? err.message : "Something went wrong.", "error");
@@ -380,7 +395,7 @@ export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
         onSuccess: () => {
           show(nextStatus === "active" ? "Faculty reactivated." : "Faculty deactivated.", "success");
           setStatusConfirmOpen(false);
-          router.push(`/admin/faculty/${faculty.id}`);
+          router.push(profileHref);
         },
         onError: (err: unknown) => {
           show(err instanceof ApiError ? err.message : "Something went wrong.", "error");
@@ -399,15 +414,15 @@ export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
   return (
     <div>
       <nav className="mb-2 text-sm text-slate-500">
-        <Link href="/admin" className="hover:text-slate-700">
-          Home
+        <Link href={homeHref} className="hover:text-slate-700">
+          {homeLabel}
         </Link>
         <span className="mx-1.5">›</span>
-        <Link href="/admin/faculty" className="hover:text-slate-700">
-          Faculty
+        <Link href={basePath} className="hover:text-slate-700">
+          {listLabel}
         </Link>
         <span className="mx-1.5">›</span>
-        <Link href={`/admin/faculty/${faculty.id}`} className="hover:text-slate-700">
+        <Link href={profileHref} className="hover:text-slate-700">
           {fullName(faculty)}
         </Link>
         <span className="mx-1.5">›</span>
@@ -422,7 +437,7 @@ export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
           </p>
         </div>
         <Link
-          href={`/admin/faculty/${faculty.id}`}
+          href={profileHref}
           className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
         >
           <EyeIcon className="h-4 w-4" /> View profile
@@ -913,7 +928,7 @@ export function FacultyEditForm({ faculty }: { faculty: Faculty }) {
         tone="danger"
         onConfirm={() => {
           clearDraft(draftKey);
-          router.push(`/admin/faculty/${faculty.id}`);
+          router.push(profileHref);
         }}
         onClose={() => setCancelConfirmOpen(false)}
       />
