@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { ChevronRightIcon } from "@/shared/components/icons";
+import { HOVERABLE } from "@/modules/hr/components/ui/hoverable";
 
 export interface DepartmentDrilldownMetric {
   label: string;
@@ -37,7 +38,7 @@ export function DepartmentDrilldownCard({
   linkLabel,
 }: DepartmentDrilldownCardProps) {
   return (
-    <div className="relative flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5">
+    <div className={`relative flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 ${HOVERABLE}`}>
       {alert && <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-red-500" />}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">

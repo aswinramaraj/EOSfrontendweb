@@ -2,21 +2,24 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
-import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { DataTable } from "@/shared/components/ui/DataTable";
+import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { StatusPill, type PillTone } from "@/shared/components/ui/StatusPill";
+import { Button } from "@/shared/components/ui/Button";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { ClockIcon, DownloadIcon } from "@/shared/components/icons";
+import { AlertTriangleIcon, BriefcaseIcon, CalendarIcon, DownloadIcon, UserCheckIcon } from "@/shared/components/icons";
 import { useFacultyAttendanceOverview } from "@/modules/faculty/hooks/useFacultyAttendanceOverview";
 import { FacultyAvatar } from "@/modules/faculty/components/FacultyAvatar";
 import { fullName } from "@/modules/faculty/lib/faculty-format";
+import { exportAttendanceSummaryPdf } from "@/modules/faculty/lib/faculty-report-pdfs";
 import { useDepartments } from "@/modules/departments/hooks/useDepartments";
-import { DepartmentDrilldownCard } from "@/modules/hr/components/DepartmentDrilldownCard";
-import { PercentStatTile } from "@/modules/hr/components/PercentStatTile";
 import { BulkMarkAttendanceModal } from "@/modules/hr/components/BulkMarkAttendanceModal";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRStatCard } from "@/modules/hr/components/HRStatCard";
+import { HRSegmentedTabs } from "@/modules/hr/components/ui/HRSegmentedTabs";
+import { HRFilterBar } from "@/modules/hr/components/ui/HRFilterBar";
+import { HRStatGridSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 import type { FacultyAttendanceOverviewRow } from "@/modules/faculty/types";
 
 const ALL = "all";
@@ -27,10 +30,8 @@ function attendanceTone(percent: number): PillTone {
   return "red";
 }
 
-// What this list needs to show at a glance: did they show up today, are
-// they out on an approved leave/OD, are they absent with nothing explaining
-// it, or has nobody checked at all yet.
 type TodayStatusLabel = "Present" | "On Leave" | "On Duty" | "On Vacation" | "Absent" | "Not Marked";
+type StatusTab = "all" | "present" | "leave" | "duty" | "absent";
 
 function todayStatusLabel(status: string | null | undefined): TodayStatusLabel {
   if (!status) return "Not Marked";
@@ -51,34 +52,46 @@ function todayStatusTone(label: TodayStatusLabel): PillTone {
 
 export default function HRFacultyAttendancePage() {
   const { show } = useToast();
-  const [view, setView] = useState<"department" | "all">("department");
+  const [statusTab, setStatusTab] = useState<StatusTab>("all");
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState(ALL);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkMarkOpen, setBulkMarkOpen] = useState(false);
+  const [exportPending, setExportPending] = useState(false);
 
   const { data: departments } = useDepartments();
   const { data, isLoading, error } = useFacultyAttendanceOverview({});
 
-  const departmentSummaries = useMemo(() => {
-    const rows = data?.rows ?? [];
-    return (departments ?? []).map((dept) => {
-      const deptRows = rows.filter((r) => r.department?.id === dept.id);
-      const avgAttendance = deptRows.length
-        ? Math.round(deptRows.reduce((sum, r) => sum + r.attendance_percentage, 0) / deptRows.length)
-        : 0;
-      const needsAttention = deptRows.filter((r) => r.attendance_percentage < 70).length;
-      return { department: dept, totalFaculty: deptRows.length, avgAttendance, needsAttention };
-    });
-  }, [departments, data]);
-
-  const allFacultyRows = useMemo(() => {
+  const baseFacultyRows = useMemo(() => {
     let rows = data?.rows ?? [];
     if (departmentFilter !== ALL) rows = rows.filter((r) => String(r.department?.id) === departmentFilter);
     const query = search.trim().toLowerCase();
     if (query) rows = rows.filter((r) => fullName(r).toLowerCase().includes(query));
     return rows;
   }, [data, departmentFilter, search]);
+
+  const statusTabCounts = useMemo(() => {
+    const present = baseFacultyRows.filter((r) => todayStatusLabel(r.today_status) === "Present").length;
+    const leave = baseFacultyRows.filter((r) => todayStatusLabel(r.today_status) === "On Leave").length;
+    const duty = baseFacultyRows.filter((r) => {
+      const label = todayStatusLabel(r.today_status);
+      return label === "On Duty" || label === "On Vacation";
+    }).length;
+    const absent = baseFacultyRows.filter((r) => todayStatusLabel(r.today_status) === "Absent").length;
+    return { present, leave, duty, absent };
+  }, [baseFacultyRows]);
+
+  const allFacultyRows = useMemo(() => {
+    if (statusTab === "all") return baseFacultyRows;
+    return baseFacultyRows.filter((r) => {
+      const label = todayStatusLabel(r.today_status);
+      if (statusTab === "present") return label === "Present";
+      if (statusTab === "leave") return label === "On Leave";
+      if (statusTab === "duty") return label === "On Duty" || label === "On Vacation";
+      if (statusTab === "absent") return label === "Absent";
+      return true;
+    });
+  }, [baseFacultyRows, statusTab]);
 
   const allRowsSelected = allFacultyRows.length > 0 && allFacultyRows.every((r) => selectedIds.has(r.faculty_id));
 
@@ -107,19 +120,44 @@ export default function HRFacultyAttendancePage() {
     [data, selectedIds],
   );
 
+  function resetFilters() {
+    setSearch("");
+    setDepartmentFilter(ALL);
+    setStatusTab("all");
+  }
+
+  async function handleExportRegister() {
+    if (allFacultyRows.length === 0) {
+      show("No attendance data to export for these filters.", "info");
+      return;
+    }
+    setExportPending(true);
+    try {
+      const departmentLabel = departmentFilter !== ALL ? departments?.find((d) => String(d.id) === departmentFilter)?.name : undefined;
+      await exportAttendanceSummaryPdf(allFacultyRows, { academicYear: "Current", department: departmentLabel });
+      show("Attendance register exported.", "success");
+    } catch {
+      show("Couldn't generate the register.", "error");
+    } finally {
+      setExportPending(false);
+    }
+  }
+
   return (
     <div>
-      <PageHeader
-        title="Faculty Attendance"
-        description="Auto-captured from biometric punch logs where available, with manual correction — one punch counts as a half day, two as a full day."
+      <HRPageHeader
+        title="Attendance & leave"
+        description={`Biometric register, leave balances and OD movement${data ? "" : "."}`}
         actions={
-          <button
-            onClick={() => show("Export is coming soon.", "info")}
-            className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <DownloadIcon className="h-4 w-4" />
-            Export
-          </button>
+          <>
+            <Button variant="secondary" isPending={exportPending} onClick={handleExportRegister}>
+              <DownloadIcon className="h-4 w-4" />
+              Download register
+            </Button>
+            <Button variant="primary" disabled={selectedIds.size === 0} onClick={() => setBulkMarkOpen(true)}>
+              Mark manual entry
+            </Button>
+          </>
         }
       />
 
@@ -129,217 +167,157 @@ export default function HRFacultyAttendancePage() {
         </p>
       )}
 
-      {data && (
-        <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {(() => {
-            const { full_days, half_days, absent, on_leave, on_duty, on_vacation, attendance_percentage } = data.today;
-            const total = full_days + half_days + absent + on_leave + on_duty + on_vacation;
-            const pct = (count: number) => (total ? (count / total) * 100 : 0);
-            return (
-              <>
-                <PercentStatTile
-                  label="Attendance % — Today"
-                  percent={attendance_percentage}
-                  subtitle={`${full_days + half_days} of ${total} faculty present`}
-                />
-                <PercentStatTile
-                  label="Full Day — Today"
-                  percent={pct(full_days)}
-                  subtitle={`${full_days} of ${total} faculty`}
-                />
-                <PercentStatTile
-                  label="Half Day — Today"
-                  percent={pct(half_days)}
-                  subtitle={`${half_days} of ${total} faculty`}
-                />
-                <PercentStatTile
-                  label="Absent — Today"
-                  percent={pct(absent)}
-                  subtitle={`${absent} of ${total} faculty`}
-                />
-                <PercentStatTile
-                  label="On Leave — Today"
-                  percent={pct(on_leave)}
-                  subtitle={`${on_leave} of ${total} faculty — counts against %`}
-                />
-                <PercentStatTile
-                  label="On Duty — Today"
-                  percent={pct(on_duty)}
-                  subtitle={`${on_duty} of ${total} faculty — excused`}
-                />
-                <PercentStatTile
-                  label="On Vacation — Today"
-                  percent={pct(on_vacation)}
-                  subtitle={`${on_vacation} of ${total} faculty — excused`}
-                />
-              </>
-            );
-          })()}
+      {!data && isLoading && (
+        <div className="mb-5">
+          <HRStatGridSkeleton count={4} />
         </div>
       )}
 
-      <div className="mb-5 inline-flex rounded-md border border-slate-200 bg-white p-1">
-        <button
-          onClick={() => setView("department")}
-          className={`rounded-[4px] px-3 py-1.5 text-sm font-medium ${
-            view === "department" ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50"
-          }`}
-        >
-          By Department
-        </button>
-        <button
-          onClick={() => setView("all")}
-          className={`rounded-[4px] px-3 py-1.5 text-sm font-medium ${
-            view === "all" ? "bg-blue-700 text-white" : "text-slate-600 hover:bg-slate-50"
-          }`}
-        >
-          All Faculty
-        </button>
-      </div>
-
-      {view === "department" && (
-        <>
-          {isLoading && (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-44 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
-              ))}
-            </div>
-          )}
-
-          {!isLoading && (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {departmentSummaries.map(({ department, totalFaculty, avgAttendance, needsAttention }) => (
-                <DepartmentDrilldownCard
-                  key={department.id}
-                  icon={ClockIcon}
-                  name={department.name}
-                  code={department.code}
-                  badge={<StatusPill tone={attendanceTone(avgAttendance)}>{avgAttendance}% avg</StatusPill>}
-                  metrics={[
-                    { label: "Total Faculty", value: totalFaculty },
-                    { label: "Needs Attention", value: needsAttention, highlight: needsAttention > 0 },
-                  ]}
-                  href={`/hr/faculty-attendance/department/${department.id}`}
-                  linkLabel="View Attendance"
-                />
-              ))}
-
-              {departmentSummaries.length === 0 && (
-                <p className="col-span-full py-10 text-center text-sm text-slate-500">No departments found.</p>
-              )}
-            </div>
-          )}
-        </>
+      {data && (
+        <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <HRStatCard
+            icon={UserCheckIcon}
+            iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+            label="Present"
+            value={data.today.full_days + data.today.half_days}
+            caption={`${data.today.attendance_percentage}% of roll`}
+          />
+          <HRStatCard
+            icon={CalendarIcon}
+            iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+            label="On leave"
+            value={data.today.on_leave}
+          />
+          <HRStatCard
+            icon={BriefcaseIcon}
+            iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+            label="On official duty"
+            value={data.today.on_duty + data.today.on_vacation}
+          />
+          <HRStatCard
+            icon={AlertTriangleIcon}
+            iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+            label="Unapproved absence"
+            value={data.today.absent}
+          />
+        </div>
       )}
 
-      {view === "all" && (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <SearchInput placeholder="Search faculty..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <SelectInput className="sm:w-56" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
-              <option value={ALL}>All Departments</option>
+      <div className="flex flex-col gap-4">
+        <HRSegmentedTabs
+          value={statusTab}
+          onChange={setStatusTab}
+          options={[
+            { value: "all", label: "All", count: baseFacultyRows.length },
+            { value: "present", label: "Present", count: statusTabCounts.present },
+            { value: "leave", label: "On leave", count: statusTabCounts.leave },
+            { value: "duty", label: "On duty", count: statusTabCounts.duty },
+            { value: "absent", label: "Absent", count: statusTabCounts.absent },
+          ]}
+        />
+
+        <HRFilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by name or employee ID…"
+          onReset={resetFilters}
+          resultCount={{ showing: allFacultyRows.length, total: baseFacultyRows.length, noun: "records" }}
+          filters={
+            <SelectInput className="w-auto" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+              <option value={ALL}>All departments</option>
               {departments?.map((d) => (
                 <option key={d.id} value={String(d.id)}>
                   {d.name}
                 </option>
               ))}
             </SelectInput>
-          </div>
+          }
+        />
 
-          {selectedIds.size > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-              <p className="text-sm font-medium text-blue-900">{selectedIds.size} faculty selected</p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSelectedIds(new Set())}
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+            <p className="text-sm font-medium text-blue-900">{selectedIds.size} faculty selected</p>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-sm font-medium text-blue-700 hover:text-blue-800"
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+
+        <DataTable<FacultyAttendanceOverviewRow>
+          isLoading={isLoading}
+          columns={[
+            {
+              key: "select",
+              header: (
+                <input
+                  type="checkbox"
+                  checked={allRowsSelected}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all faculty"
+                />
+              ),
+              render: (row) => (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(row.faculty_id)}
+                  onChange={() => toggleOne(row.faculty_id)}
+                  aria-label={`Select ${fullName(row)}`}
+                />
+              ),
+            },
+            {
+              key: "faculty",
+              header: "Faculty",
+              render: (row) => (
+                <div className="flex items-center gap-3">
+                  <FacultyAvatar
+                    faculty={{ id: row.faculty_id, first_name: row.first_name, last_name: row.last_name, profile_url: row.profile_url }}
+                    className="h-8 w-8 rounded-full text-xs"
+                  />
+                  <span className="font-medium text-slate-900">{fullName(row)}</span>
+                </div>
+              ),
+            },
+            { key: "department", header: "Department", render: (row) => row.department?.name ?? "—" },
+            {
+              key: "today_status",
+              header: "Status",
+              render: (row) => {
+                const label = todayStatusLabel(row.today_status);
+                return <StatusPill tone={todayStatusTone(label)}>{label}</StatusPill>;
+              },
+            },
+            {
+              key: "attendance_percentage",
+              header: "Attendance % (year)",
+              render: (row) => (
+                <StatusPill tone={attendanceTone(row.attendance_percentage)}>{row.attendance_percentage}%</StatusPill>
+              ),
+            },
+            {
+              key: "actions",
+              header: "",
+              align: "right",
+              render: (row) => (
+                <Link
+                  href={`/hr/faculty-attendance/${row.faculty_id}`}
                   className="text-sm font-medium text-blue-700 hover:text-blue-800"
                 >
-                  Clear selection
-                </button>
-                <button
-                  onClick={() => setBulkMarkOpen(true)}
-                  className="rounded-md bg-blue-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-800"
-                >
-                  Mark Attendance
-                </button>
-              </div>
-            </div>
-          )}
+                  View
+                </Link>
+              ),
+            },
+          ]}
+          rows={allFacultyRows}
+          rowKey={(row) => row.faculty_id}
+          emptyMessage="No faculty match these filters."
+        />
 
-          <DataTable<FacultyAttendanceOverviewRow>
-            isLoading={isLoading}
-            columns={[
-              {
-                key: "select",
-                header: (
-                  <input
-                    type="checkbox"
-                    checked={allRowsSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all faculty"
-                  />
-                ),
-                render: (row) => (
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(row.faculty_id)}
-                    onChange={() => toggleOne(row.faculty_id)}
-                    aria-label={`Select ${fullName(row)}`}
-                  />
-                ),
-              },
-              {
-                key: "faculty",
-                header: "Faculty",
-                render: (row) => (
-                  <div className="flex items-center gap-3">
-                    <FacultyAvatar
-                      faculty={{ id: row.faculty_id, first_name: row.first_name, last_name: row.last_name, profile_url: row.profile_url }}
-                      className="h-8 w-8 rounded-full text-xs"
-                    />
-                    <span className="font-medium text-slate-900">{fullName(row)}</span>
-                  </div>
-                ),
-              },
-              { key: "department", header: "Department", render: (row) => row.department?.name ?? "—" },
-              {
-                key: "today_status",
-                header: "Status",
-                render: (row) => {
-                  const label = todayStatusLabel(row.today_status);
-                  return <StatusPill tone={todayStatusTone(label)}>{label}</StatusPill>;
-                },
-              },
-              {
-                key: "attendance_percentage",
-                header: "Attendance % (year)",
-                render: (row) => (
-                  <StatusPill tone={attendanceTone(row.attendance_percentage)}>{row.attendance_percentage}%</StatusPill>
-                ),
-              },
-              {
-                key: "actions",
-                header: "",
-                align: "right",
-                render: (row) => (
-                  <Link
-                    href={`/hr/faculty-attendance/${row.faculty_id}`}
-                    className="text-sm font-medium text-blue-700 hover:text-blue-800"
-                  >
-                    View
-                  </Link>
-                ),
-              },
-            ]}
-            rows={allFacultyRows}
-            rowKey={(row) => row.faculty_id}
-            emptyMessage="No faculty match these filters."
-          />
-        </div>
-      )}
+        <p className="text-xs text-slate-400">Register auto-locks at 6:00 pm · manual corrections need HR head approval.</p>
+      </div>
 
       <BulkMarkAttendanceModal
         open={bulkMarkOpen}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { ApiError } from "@/shared/lib/api-client";
@@ -15,6 +14,8 @@ import { useHrRequests } from "@/modules/hr/hooks/useHrRequests";
 import { useLeaveTypes } from "@/modules/hr/hooks/useLeaveTypes";
 import { VacationScheduleDrawer, type VacationScheduleEntry } from "@/modules/hr/components/VacationScheduleDrawer";
 import { LeaveMonitorCard } from "@/modules/hr/components/LeaveMonitorCard";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRBlockSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 import type { HrUnifiedRequest } from "@/modules/hr/types/api";
 
 const ALL = "all";
@@ -168,7 +169,7 @@ export default function HRVacationManagementPage() {
 
   return (
     <div>
-      <PageHeader
+      <HRPageHeader
         title="Vacation Management"
         description="Read-only calendar of approved leave and OD. Click a day to see who's out — to approve or reject a request, use the Requests page."
       />
@@ -179,32 +180,9 @@ export default function HRVacationManagementPage() {
         </p>
       )}
 
-      <div className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {leaveTypeMonitors.map(({ leaveType, percent, count, names }) => (
-          <LeaveMonitorCard
-            key={leaveType.id}
-            icon={CalendarIcon}
-            iconClassName="bg-amber-50 text-amber-600"
-            label={`${leaveType.name} — Today`}
-            percent={percent}
-            subtitle={`${count} of ${faculty.length} faculty`}
-            names={names}
-            emptyLabel={`Nobody on ${leaveType.name.toLowerCase()} today.`}
-          />
-        ))}
-        <LeaveMonitorCard
-          icon={AlertTriangleIcon}
-          iconClassName="bg-red-50 text-red-600"
-          label="Unaccounted Absences — Today"
-          percent={absentPercent}
-          subtitle={`${unaccountedAbsentToday.length} of ${totalFacultyForAbsence} faculty — no leave/OD on file`}
-          names={unaccountedAbsentToday.map((r) => fullName(r))}
-          emptyLabel="Nobody unaccounted for today."
-        />
-      </div>
-
       <div className="flex flex-col gap-6 lg:flex-row">
-        <div className="flex-1 rounded-lg border border-slate-200 bg-white p-5">
+        <div className="flex flex-1 flex-col gap-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
@@ -241,7 +219,7 @@ export default function HRVacationManagementPage() {
             </div>
           </div>
 
-          {isLoading && <p className="py-10 text-center text-sm text-slate-500">Loading…</p>}
+          {isLoading && <HRBlockSkeleton contentClassName="h-96" />}
 
           {!isLoading && (
             <div className="grid grid-cols-7 gap-px overflow-hidden rounded-md border border-slate-100 bg-slate-100 text-xs">
@@ -298,8 +276,37 @@ export default function HRVacationManagementPage() {
           )}
         </div>
 
+        {/* Sits below the calendar, in the same left column — fills the
+            blank space that used to appear here once the shorter right
+            column (Faculty + Upcoming Vacations) finished scrolling while
+            the calendar kept going. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {leaveTypeMonitors.map(({ leaveType, percent, count, names }) => (
+            <LeaveMonitorCard
+              key={leaveType.id}
+              icon={CalendarIcon}
+              iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+              label={`${leaveType.name} — Today`}
+              percent={percent}
+              subtitle={`${count} of ${faculty.length} faculty`}
+              names={names}
+              emptyLabel={`Nobody on ${leaveType.name.toLowerCase()} today.`}
+            />
+          ))}
+          <LeaveMonitorCard
+            icon={AlertTriangleIcon}
+            iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+            label="Unaccounted Absences — Today"
+            percent={absentPercent}
+            subtitle={`${unaccountedAbsentToday.length} of ${totalFacultyForAbsence} faculty — no leave/OD on file`}
+            names={unaccountedAbsentToday.map((r) => fullName(r))}
+            emptyLabel="Nobody unaccounted for today."
+          />
+        </div>
+        </div>
+
         <div className="flex w-full flex-col gap-6 lg:w-80 lg:shrink-0">
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
             <h3 className="text-base font-bold text-slate-900">Faculty</h3>
 
             <div className="mt-4 flex flex-col gap-3">
@@ -339,7 +346,7 @@ export default function HRVacationManagementPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
             <h3 className="text-base font-bold text-slate-900">Upcoming Vacations</h3>
             <div className="mt-4 flex flex-col gap-3">
               {upcomingVacations.map((request) => {

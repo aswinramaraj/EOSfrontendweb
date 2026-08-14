@@ -7,6 +7,7 @@ import { useFacultyById } from "@/modules/faculty/hooks/useFacultyById";
 import { FacultyAvatar } from "@/modules/faculty/components/FacultyAvatar";
 import { fullName as formatFacultyName } from "@/modules/faculty/lib/faculty-format";
 import { FacultyAttendanceDetail } from "@/modules/hr/components/FacultyAttendanceDetail";
+import { HRPageSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 
 export default function HRFacultyAttendanceDetailPage() {
   const { facultyId } = useParams<{ facultyId: string }>();
@@ -15,7 +16,7 @@ export default function HRFacultyAttendanceDetailPage() {
   const { data: faculty, isLoading: facultyLoading } = useFacultyById(id);
 
   if (facultyLoading) {
-    return <p className="text-sm text-slate-500">Loading…</p>;
+    return <HRPageSkeleton statCount={4} cardCount={0} blockCount={1} blockContentClassName="h-96" />;
   }
 
   if (!faculty) {

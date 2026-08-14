@@ -125,7 +125,7 @@ export function FacultyAttendanceDetail({ facultyId, facultyName }: FacultyAtten
 
   if (!attendance) {
     return (
-      <p className="rounded-lg border border-slate-200 bg-white py-8 text-center text-sm text-slate-500">
+      <p className="rounded-xl border border-slate-200 bg-white py-8 text-center text-sm text-slate-500">
         No attendance records for this faculty yet.
       </p>
     );
@@ -171,9 +171,9 @@ export function FacultyAttendanceDetail({ facultyId, facultyName }: FacultyAtten
           percent={pct(on_vacation)}
           subtitle={`${on_vacation} of ${total} days — excused`}
         />
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
           <p className="text-sm text-slate-500">Total Days</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{total}</p>
+          <p className="mt-1 text-[26px] font-black text-slate-900">{total}</p>
         </div>
         <PercentStatTile
           label="Attendance %"
@@ -186,7 +186,7 @@ export function FacultyAttendanceDetail({ facultyId, facultyName }: FacultyAtten
         {displayMonths.map((group) => {
           const isOpen = expandedMonth === group.month;
           return (
-            <div key={group.month} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div key={group.month} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
               <button
                 onClick={() => setExpandedMonth(isOpen ? null : group.month)}
                 className="flex w-full items-center justify-between px-5 py-4 text-left"

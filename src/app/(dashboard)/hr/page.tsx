@@ -3,63 +3,102 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
+import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "@/shared/components/ui/DataTable";
-import { SelectInput } from "@/shared/components/ui/SelectInput";
-import { TextInput } from "@/shared/components/ui/TextInput";
 import { Button } from "@/shared/components/ui/Button";
 import { StatusPill, type PillTone } from "@/shared/components/ui/StatusPill";
 import { ApiError } from "@/shared/lib/api-client";
 import {
-  AwardIcon,
-  BarChartIcon,
-  BriefcaseIcon,
-  CalendarIcon,
+  AlertTriangleIcon,
+  CheckIcon,
   ClockIcon,
-  PeopleIcon,
+  DownloadIcon,
+  ListIcon,
   RupeeIcon,
+  XIcon,
 } from "@/shared/components/icons";
+import { HRCard } from "@/modules/hr/components/ui/HRCard";
+import { HRPill } from "@/modules/hr/components/ui/HRPill";
+import { HRSegmentedTabs } from "@/modules/hr/components/ui/HRSegmentedTabs";
 import { HRStatCard } from "@/modules/hr/components/HRStatCard";
-import { PendingActionsDrawer } from "@/modules/hr/components/PendingActionsDrawer";
+import { HRPageSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 import { useHrDashboard } from "@/modules/hr/hooks/useHrDashboard";
-import { useHrRequests } from "@/modules/hr/hooks/useHrRequests";
-import { useAppraisalRequests } from "@/modules/hr/hooks/useAppraisalRequests";
+import { useHrRequests, useHrRequestDecision } from "@/modules/hr/hooks/useHrRequests";
+import { usePayslipRequests } from "@/modules/hr/hooks/usePayslipRequests";
+import { useLeaveTypes } from "@/modules/hr/hooks/useLeaveTypes";
+import { useFacultyAttendanceOverview } from "@/modules/faculty/hooks/useFacultyAttendanceOverview";
+import { appraisalRequestsService } from "@/modules/hr/services/appraisal-requests.service";
+import { hrPayrollService } from "@/modules/hr/services/hr-payroll.service";
+import { fetchAllPages } from "@/modules/faculty/lib/report-export";
+import { fullName } from "@/modules/faculty/lib/faculty-format";
+import { exportAttendanceSummaryPdf } from "@/modules/faculty/lib/faculty-report-pdfs";
+import { useVacancies } from "@/modules/hr/local/recruitment-store";
+import { useOnboardingCases } from "@/modules/hr/local/onboarding-exits-store";
 import { useAuthUser } from "@/modules/auth/hooks/useAuthUser";
-import type { DepartmentAppraisalRollupStatus, HrDepartmentRollup } from "@/modules/hr/types/api";
+import { displayNameFromEmail } from "@/modules/hr/lib/hr-display-name";
+import { useToast } from "@/shared/components/ui/ToastProvider";
+import type { DepartmentAppraisalRollupStatus, HrDepartmentRollup, HrUnifiedRequest } from "@/modules/hr/types/api";
 
-const HR_ACTIONABLE_APPRAISAL_STATUSES = new Set(["hod_reviewed", "hr_scored"]);
+type Scope = "today" | "month" | "year";
 
-const ALL_DEPARTMENTS = "all";
+function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
 
 function todayIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-// No "name" field exists on HR accounts (they aren't linked to a faculty
-// record) — the only real identifier is the role, so the greeting addresses
-// that ("HR Payroll") rather than fabricating a person's name.
 function greetingForHour(hour: number): string {
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
 
-const ACRONYM_WORDS = new Set(["hr"]);
-
-function roleDisplayName(role: string): string {
-  return role
-    .split("_")
-    .map((word) => (ACRONYM_WORDS.has(word) ? word.toUpperCase() : word[0]?.toUpperCase() + word.slice(1)))
-    .join(" ");
-}
-
 function isDateInRange(dateIso: string, fromIso: string, toIso: string): boolean {
   return dateIso >= fromIso.slice(0, 10) && dateIso <= toIso.slice(0, 10);
 }
 
-function formatDisplayDate(dateIso: string): string {
-  return new Date(`${dateIso}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+// Whether a request's [from, to] span overlaps the selected scope's window
+// (today / the current calendar month / the current calendar year) — real
+// date-range overlap, not just an exact "today" match, so switching the
+// Today/This month/This year tabs actually changes what's counted.
+function isRequestInScope(fromIso: string, toIso: string, scope: Scope, todayIso: string): boolean {
+  const from = fromIso.slice(0, 10);
+  const to = toIso.slice(0, 10);
+  if (scope === "today") return isDateInRange(todayIso, from, to);
+  const [year, month] = todayIso.split("-");
+  const windowStart = scope === "month" ? `${year}-${month}-01` : `${year}-01-01`;
+  const windowEnd = scope === "month" ? `${year}-${month}-31` : `${year}-12-31`;
+  return from <= windowEnd && to >= windowStart;
+}
+
+function datesBetween(fromIso: string, toIso_: string): string[] {
+  const dates: string[] = [];
+  const cursor = new Date(fromIso);
+  const end = new Date(toIso_);
+  while (cursor <= end) {
+    dates.push(`${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}-${String(cursor.getUTCDate()).padStart(2, "0")}`);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+function formatFullDate(dateIso: string): string {
+  return new Date(`${dateIso}T00:00:00`).toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatRupees(amount: number): string {
+  if (amount >= 1e7) return `₹${(amount / 1e7).toFixed(2)} Cr`;
+  if (amount >= 1e5) return `₹${(amount / 1e5).toFixed(1)} L`;
+  return `₹${amount.toLocaleString("en-IN")}`;
 }
 
 const APPRAISAL_STATUS_TONE: Record<DepartmentAppraisalRollupStatus, PillTone> = {
@@ -74,127 +113,234 @@ const APPRAISAL_STATUS_LABEL: Record<DepartmentAppraisalRollupStatus, string> = 
   complete: "Complete",
 };
 
-const QUICK_ACTIONS = [
-  { label: "Review Leaves", icon: CalendarIcon, href: "/hr/requests?tab=leave" },
-  { label: "Review OD", icon: BriefcaseIcon, href: "/hr/requests?tab=od" },
-  { label: "Process Payroll", icon: RupeeIcon, href: "/hr/payroll" },
-  { label: "Employee Reviews", icon: AwardIcon, href: "/hr/employee-reviews" },
-  { label: "Faculty Directory", icon: PeopleIcon, href: "/hr/faculty-directory" },
-  { label: "View Reports", icon: BarChartIcon, href: "/hr/reports" },
+const APPRAISAL_PIPELINE_STEPS: { key: "submitted" | "hod_reviewed" | "hr_scored" | "management_approved" | "rejected"; label: string }[] = [
+  { key: "submitted", label: "Self-appraisal submitted" },
+  { key: "hod_reviewed", label: "HOD reviewed" },
+  { key: "hr_scored", label: "HR scored" },
+  { key: "management_approved", label: "Principal approved" },
+  { key: "rejected", label: "Rejected / sent back" },
 ];
 
 export default function HRDashboardPage() {
   const router = useRouter();
+  const { show } = useToast();
   const authUser = useAuthUser();
-  const [pendingActionsOpen, setPendingActionsOpen] = useState(false);
-  const [department, setDepartment] = useState<string>(ALL_DEPARTMENTS);
-  const [statusDate, setStatusDate] = useState<string>(todayIso());
-  const isToday = statusDate === todayIso();
+  const [scope, setScope] = useState<Scope>("today");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exportPending, setExportPending] = useState(false);
+  // Captured once per mount rather than called inline during render (which
+  // React's purity rule flags as an impure Date.now() call) — fine for a
+  // "how stale is this" check that doesn't need to tick live.
+  const [nowMs] = useState(() => Date.now());
 
   const { data, isLoading, error } = useHrDashboard();
-  // Fetched broadly and filtered client-side to just the HOD-approved,
-  // HR-still-pending subset — "pending" from the backend also includes
-  // requests still waiting on HOD, which aren't actually an HR task yet and
-  // shouldn't show up as an "urgent" action or inflate its notification count.
   const pendingRequests = useHrRequests({ status: "pending", limit: 100 });
-  const pendingAppraisals = useAppraisalRequests({ limit: 100 });
-  // Fetched once and filtered by `statusDate` client-side, rather than
-  // trusting the dashboard payload's built-in "today" counts — that's the
-  // only way to answer "who was on leave/OD on some other date" without a
-  // backend endpoint for it, and it keeps "today" and any picked date on the
-  // exact same code path instead of two different sources of truth.
   const approvedRequests = useHrRequests({ status: "approved", limit: 100 });
+  // The backend caps `limit` at 100 per page — with 642+ faculty there can
+  // be well over 100 appraisal/payroll records, so these page through the
+  // full set (same fetchAllPages helper the Reports page's exports use)
+  // rather than requesting an over-limit page size that 400s, or silently
+  // under-counting the dashboard's aggregates.
+  const appraisals = useQuery({
+    queryKey: ["hr", "dashboard", "appraisals-all"],
+    queryFn: () => fetchAllPages((page, limit) => appraisalRequestsService.list({ page, limit })),
+  });
+  const attendanceOverview = useFacultyAttendanceOverview({});
+  const currentMonth = currentMonthKey();
+  const payroll = useQuery({
+    queryKey: ["hr", "dashboard", "payroll-all", currentMonth],
+    queryFn: () => fetchAllPages((page, limit) => hrPayrollService.list({ month: currentMonth, page, limit })),
+  });
+  const payslipRequests = usePayslipRequests({ status: "pending", limit: 100 });
+  const { data: leaveTypes } = useLeaveTypes();
+  const { data: vacancies } = useVacancies();
+  const { data: onboardingCases } = useOnboardingCases();
+  const decision = useHrRequestDecision();
 
-  const dateStats = useMemo(() => {
-    const rows = approvedRequests.data?.data ?? [];
-    const byDepartment = new Map<number, { onLeave: number; onOd: number; onVacation: number }>();
-    let onLeave = 0;
-    let onOd = 0;
-    let onVacation = 0;
+  const today = todayIso();
 
-    for (const request of rows) {
-      if (!isDateInRange(statusDate, request.from_date, request.to_date)) continue;
-      const deptId = request.faculty.department.id;
-      const entry = byDepartment.get(deptId) ?? { onLeave: 0, onOd: 0, onVacation: 0 };
-      if (request.kind === "leave") {
-        onLeave += 1;
-        entry.onLeave += 1;
-        // Vacation is one leave type among several (Casual/Sick/Earned/...) —
-        // it's still counted in the general leave tally above, this just
-        // breaks it out into its own card too since HR asked to see it
-        // separately from other leave types.
-        if (request.leave_type?.name.toLowerCase().includes("vacation")) {
-          onVacation += 1;
-          entry.onVacation += 1;
-        }
-      } else {
-        onOd += 1;
-        entry.onOd += 1;
-      }
-      byDepartment.set(deptId, entry);
-    }
-
-    return { onLeave, onOd, onVacation, byDepartment };
-  }, [approvedRequests.data, statusDate]);
-
-  const selectedDepartment: HrDepartmentRollup | null = useMemo(() => {
-    if (!data || department === ALL_DEPARTMENTS) return null;
-    return data.department_overview.find((d) => String(d.id) === department) ?? null;
-  }, [data, department]);
-
-  const departmentRows = useMemo(() => {
-    if (!data) return [];
-    const withDateStats = data.department_overview.map((d) => ({
-      ...d,
-      on_leave_today: dateStats.byDepartment.get(d.id)?.onLeave ?? 0,
-      on_od_today: dateStats.byDepartment.get(d.id)?.onOd ?? 0,
-    }));
-    if (department === ALL_DEPARTMENTS) return withDateStats;
-    return withDateStats.filter((d) => String(d.id) === department);
-  }, [data, department, dateStats]);
-
-  const actionableRequests = useMemo(() => {
-    const rows = pendingRequests.data?.data ?? [];
-    return rows.filter((r) => {
-      if (r.hod_approval_status !== "approved" || r.hr_approval_status !== "pending") return false;
-      if (selectedDepartment) return r.faculty.department.id === selectedDepartment.id;
-      return true;
-    });
-  }, [pendingRequests.data, selectedDepartment]);
-
+  const actionableRequests = useMemo(
+    () =>
+      (pendingRequests.data?.data ?? []).filter(
+        (r) => r.hod_approval_status === "approved" && r.hr_approval_status === "pending",
+      ),
+    [pendingRequests.data],
+  );
   const actionableAppraisals = useMemo(
-    () => (pendingAppraisals.data?.data ?? []).filter((a) => HR_ACTIONABLE_APPRAISAL_STATUSES.has(a.status)),
-    [pendingAppraisals.data],
+    () => (appraisals.data?.rows ?? []).filter((a) => a.status === "hod_reviewed" || a.status === "hr_scored"),
+    [appraisals.data],
   );
 
-  const selectedDepartmentLeave = selectedDepartment ? (dateStats.byDepartment.get(selectedDepartment.id)?.onLeave ?? 0) : dateStats.onLeave;
-  const selectedDepartmentOd = selectedDepartment ? (dateStats.byDepartment.get(selectedDepartment.id)?.onOd ?? 0) : dateStats.onOd;
-  const selectedDepartmentVacation = selectedDepartment
-    ? (dateStats.byDepartment.get(selectedDepartment.id)?.onVacation ?? 0)
-    : dateStats.onVacation;
-  const rosterSize = selectedDepartment
-    ? selectedDepartment.total_faculty
-    : (data?.department_overview.reduce((sum, d) => sum + d.total_faculty, 0) ?? 0);
-  const leavePercent = rosterSize ? (selectedDepartmentLeave / rosterSize) * 100 : 0;
-  const odPercent = rosterSize ? (selectedDepartmentOd / rosterSize) * 100 : 0;
-  const vacationPercent = rosterSize ? (selectedDepartmentVacation / rosterSize) * 100 : 0;
+  const rosterSize = data?.department_overview.reduce((sum, d) => sum + d.total_faculty, 0) ?? 0;
+
+  // "Reported on duty" — real biometric-derived present count for today.
+  const todayAttendance = attendanceOverview.data?.today;
+  const presentToday = todayAttendance ? todayAttendance.full_days + todayAttendance.half_days : 0;
+
+  // "August payroll" — real sum across this month's payroll records.
+  const payrollRecords = payroll.data?.rows ?? [];
+  const grossThisMonth = payrollRecords.reduce((sum, r) => sum + r.gross_amount, 0);
+
+  // Leave/OD breakdown for whichever scope is selected — split by leave
+  // type name where possible, matching the reference's "Casual leave" /
+  // "Earned / vacation" split. Counts distinct requests whose date range
+  // overlaps the scope's window, not just an exact "today" match, so the
+  // Today/This month/This year tabs actually change what's shown.
+  const approvedInScope = useMemo(
+    () => (approvedRequests.data?.data ?? []).filter((r) => isRequestInScope(r.from_date, r.to_date, scope, today)),
+    [approvedRequests.data, scope, today],
+  );
+  const casualInScope = approvedInScope.filter((r) => r.kind === "leave" && r.leave_type?.name.toLowerCase().includes("casual")).length;
+  const earnedInScope = approvedInScope.filter(
+    (r) => r.kind === "leave" && (r.leave_type?.name.toLowerCase().includes("earned") || r.leave_type?.name.toLowerCase().includes("vacation")),
+  ).length;
+  const onDutyInScope = approvedInScope.filter((r) => r.kind === "od").length;
+  // Unaccounted-absence is a same-day biometric-vs-leave check the backend
+  // only computes for "today" — there's no month/year equivalent, so this
+  // stays a today snapshot regardless of the selected scope.
+  const unaccountedAbsentToday = (attendanceOverview.data?.rows ?? []).filter((r) => r.is_unaccounted_absent_today).length;
+
+  const scopeLabel = scope === "today" ? "Today" : scope === "month" ? "This month" : "This year";
+
+  // "Reported on duty" — today's scope shows the real biometric present
+  // count/percent for today; month/year scope has no biometric aggregate
+  // for a period, so it shows the real per-faculty attendance % (the same
+  // "year to date" figure the Faculty Attendance page's own column uses)
+  // averaged across the roster instead of quietly reusing today's number.
+  const avgAttendancePercent = useMemo(() => {
+    const rows = attendanceOverview.data?.rows ?? [];
+    if (rows.length === 0) return 0;
+    return Math.round(rows.reduce((sum, r) => sum + r.attendance_percentage, 0) / rows.length);
+  }, [attendanceOverview.data]);
+
+  // Leave balance utilisation — academic-year-to-date days taken per leave
+  // type, against that type's per-faculty annual quota × roster size.
+  const currentYear = new Date().getFullYear();
+  const leaveUtilisation = useMemo(() => {
+    const rows = approvedRequests.data?.data ?? [];
+    return (leaveTypes ?? []).map((lt) => {
+      const daysTaken = rows
+        .filter((r) => r.kind === "leave" && r.leave_type?.id === lt.id)
+        .reduce((sum, r) => sum + datesBetween(r.from_date, r.to_date).filter((d) => d.startsWith(`${currentYear}`)).length, 0);
+      const capacity = lt.default_annual_quota * Math.max(1, rosterSize);
+      const percent = capacity ? Math.min(100, (daysTaken / capacity) * 100) : 0;
+      return { leaveType: lt, percent };
+    });
+  }, [approvedRequests.data, leaveTypes, currentYear, rosterSize]);
+
+  // Appraisal cycle pipeline — real counts across every fetched request.
+  const allAppraisals = useMemo(() => appraisals.data?.rows ?? [], [appraisals.data]);
+  const appraisalCountByStatus = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const a of allAppraisals) counts[a.status] = (counts[a.status] ?? 0) + 1;
+    return counts;
+  }, [allAppraisals]);
+  const scoredAppraisals = allAppraisals.filter((a) => a.entries.some((e) => e.score !== null));
+  const appraisalScores = scoredAppraisals.map((a) => {
+    const max = a.entries.reduce((sum, e) => sum + e.criteria.max_score, 0);
+    const score = a.entries.reduce((sum, e) => sum + (e.score ?? 0), 0);
+    return max ? (score / max) * 100 : 0;
+  });
+  const meanScore = appraisalScores.length ? appraisalScores.reduce((a, b) => a + b, 0) / appraisalScores.length : null;
+  const belowThresholdCount = appraisalScores.filter((s) => s < 50).length;
+
+  // Needs attention — only real, computed flags; nothing fabricated.
+  const slaBreaches = actionableRequests.filter((r) => nowMs - new Date(r.created_at).getTime() > 48 * 60 * 60 * 1000);
+  const notStartedDepartments = (data?.department_overview ?? []).filter((d) => d.appraisal_status === "not_started");
+  const probationDueCount = (onboardingCases ?? []).filter((c) => c.type === "onboarding" && c.probationReviewDue).length;
+
+  const needsAttention = [
+    slaBreaches.length > 0 && {
+      label: `${slaBreaches.length} approval${slaBreaches.length === 1 ? "" : "s"} past the 48-hour SLA`,
+      caption: "Leave and OD requests awaiting HR",
+    },
+    unaccountedAbsentToday > 0 && {
+      label: `${unaccountedAbsentToday} unapproved absence${unaccountedAbsentToday === 1 ? "" : "s"} today`,
+      caption: "No leave record against biometric miss",
+    },
+    belowThresholdCount > 0 && {
+      label: `${belowThresholdCount} faculty scored below 50 in appraisal`,
+      caption: "Improvement plans may be needed",
+    },
+    notStartedDepartments.length > 0 && {
+      label: `${notStartedDepartments[0].name} appraisal cycle not started`,
+      caption: `${notStartedDepartments[0].total_faculty} staff in this department`,
+    },
+    probationDueCount > 0 && {
+      label: `${probationDueCount} probation review${probationDueCount === 1 ? "" : "s"} due`,
+      caption: "Confirmation letters pending HR sign-off",
+    },
+  ].filter(Boolean) as { label: string; caption: string }[];
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function approveOne(request: HrUnifiedRequest) {
+    decision.mutate(
+      { kind: request.kind, sourceId: request.source_id, decision: "approved" },
+      { onError: (err) => show(err instanceof ApiError ? err.message : "Failed to approve.", "error") },
+    );
+  }
+
+  function rejectOne(request: HrUnifiedRequest) {
+    decision.mutate(
+      { kind: request.kind, sourceId: request.source_id, decision: "rejected" },
+      { onError: (err) => show(err instanceof ApiError ? err.message : "Failed to reject.", "error") },
+    );
+  }
+
+  function approveSelected() {
+    const rows = actionableRequests.filter((r) => selectedIds.has(r.id));
+    for (const request of rows) approveOne(request);
+    setSelectedIds(new Set());
+  }
+
+  const displayName = authUser ? displayNameFromEmail(authUser.email) : "";
+
+  async function handleExportRegister() {
+    const rows = attendanceOverview.data?.rows ?? [];
+    if (rows.length === 0) {
+      show("No attendance data to export yet.", "info");
+      return;
+    }
+    setExportPending(true);
+    try {
+      await exportAttendanceSummaryPdf(rows, { academicYear: "Current" });
+      show("Attendance register exported.", "success");
+    } catch {
+      show("Couldn't generate the register.", "error");
+    } finally {
+      setExportPending(false);
+    }
+  }
 
   return (
     <div>
-      <PageHeader
-        eyebrow={authUser && `${greetingForHour(new Date().getHours())}, ${roleDisplayName(authUser.role)}`}
-        title="HR Dashboard"
-        description="Monitor requests, appraisals, payroll, and faculty activity."
-        actions={
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-black leading-tight tracking-tight text-slate-900 sm:text-[34px]">
+            {greetingForHour(new Date().getHours())}, {displayName || "there"}
+          </h1>
+          <p className="mt-1.5 text-sm text-slate-500">
+            {formatFullDate(today)} · {rosterSize} staff on roll
+          </p>
+        </div>
+        {actionableRequests.length > 0 && (
           <button
-            onClick={() => setPendingActionsOpen(true)}
-            className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+            onClick={() => router.push("/hr/requests?tab=pending")}
+            className="flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
           >
-            <ClockIcon className="h-4 w-4" />
-            Review Pending Actions
+            <AlertTriangleIcon className="h-4 w-4" />
+            {actionableRequests.length} approvals are waiting on HR
           </button>
-        }
-      />
+        )}
+      </div>
 
       {error && (
         <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -202,159 +348,234 @@ export default function HRDashboardPage() {
         </p>
       )}
 
-      {isLoading && (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 lg:grid-cols-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-32.5 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
-          ))}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-xs">
+          <HRSegmentedTabs
+            value={scope}
+            onChange={setScope}
+            options={[
+              { value: "today", label: "Today" },
+              { value: "month", label: "This month" },
+              { value: "year", label: "This year" },
+            ]}
+          />
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" isPending={exportPending} onClick={handleExportRegister}>
+            <DownloadIcon className="h-4 w-4" />
+            Export register
+          </Button>
+          <Button variant="primary" onClick={() => router.push("/hr/requests?tab=pending")}>
+            Review pending actions
+          </Button>
+        </div>
+      </div>
+
+      {isLoading && (
+        <HRPageSkeleton statCount={4} cardCount={3} cardContentClassName="h-36" blockCount={2} blockContentClassName="h-56" />
       )}
 
       {!isLoading && !error && data && (
         <>
-          <div className="mb-5 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label htmlFor="dashboard-department" className="text-sm font-medium text-slate-600">
-                Department
-              </label>
-              <SelectInput
-                id="dashboard-department"
-                className="w-auto"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-              >
-                <option value={ALL_DEPARTMENTS}>All Departments</option>
-                {data.department_overview.map((d) => (
-                  <option key={d.id} value={String(d.id)}>
-                    {d.name}
-                  </option>
-                ))}
-              </SelectInput>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <label htmlFor="dashboard-status-date" className="text-sm font-medium text-slate-600">
-                Status for
-              </label>
-              <TextInput
-                id="dashboard-status-date"
-                type="date"
-                className="w-auto"
-                value={statusDate}
-                onChange={(e) => setStatusDate(e.target.value || todayIso())}
-              />
-              {!isToday && (
-                <Button variant="secondary" size="sm" onClick={() => setStatusDate(todayIso())}>
-                  Today
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 lg:grid-cols-6">
-            <HRStatCard
-              icon={ClockIcon}
-              iconClassName="bg-rose-50 text-rose-600"
-              label="Pending Requests"
-              value={actionableRequests.length}
-              caption="Leave + OD awaiting HR action"
-              cornerDot={actionableRequests.length > 0}
-              onClick={() => setPendingActionsOpen(true)}
-            />
-
-            <Link href="/hr/vacation-management" className="block h-full">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <Link href="/hr/faculty-directory" className="block h-full">
               <HRStatCard
-                icon={CalendarIcon}
-                iconClassName="bg-amber-50 text-amber-600"
-                label={isToday ? "Today's Leave" : `Leave — ${formatDisplayDate(statusDate)}`}
-                value={`${leavePercent.toFixed(1)}%`}
-                caption={`${selectedDepartmentLeave} of ${rosterSize} faculty ${isToday ? "on leave today" : `on leave on ${formatDisplayDate(statusDate)}`}`}
-                progressPercent={leavePercent}
+                icon={ListIcon}
+                iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+                label="Faculty & staff on roll"
+                value={rosterSize}
+                caption={`Across ${data.department_overview.length} departments`}
+                progressPercent={rosterSize ? 100 : 0}
               />
             </Link>
-
-            <Link href="/hr/vacation-management" className="block h-full">
+            <Link href="/hr/faculty-attendance" className="block h-full">
               <HRStatCard
-                icon={CalendarIcon}
-                iconClassName="bg-cyan-50 text-cyan-600"
-                label={isToday ? "Today's Vacation" : `Vacation — ${formatDisplayDate(statusDate)}`}
-                value={`${vacationPercent.toFixed(1)}%`}
-                caption={`${selectedDepartmentVacation} of ${rosterSize} faculty ${isToday ? "on vacation leave today" : `on vacation leave on ${formatDisplayDate(statusDate)}`}`}
-                progressPercent={vacationPercent}
+                icon={ClockIcon}
+                iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+                label={scope === "today" ? "Reported on duty" : `Attendance — ${scopeLabel}`}
+                value={scope === "today" ? presentToday : `${avgAttendancePercent}%`}
+                caption={
+                  scope === "today"
+                    ? todayAttendance
+                      ? `${todayAttendance.attendance_percentage}% attendance today`
+                      : "—"
+                    : `Average across ${rosterSize} faculty`
+                }
+                progressPercent={scope === "today" ? todayAttendance?.attendance_percentage : avgAttendancePercent}
               />
             </Link>
-
-            <Link href="/hr/vacation-management" className="block h-full">
+            <Link href="/hr/requests?tab=pending" className="block h-full">
               <HRStatCard
-                icon={BriefcaseIcon}
-                iconClassName="bg-blue-50 text-blue-600"
-                label={isToday ? "Today's OD" : `OD — ${formatDisplayDate(statusDate)}`}
-                value={`${odPercent.toFixed(1)}%`}
-                caption={`${selectedDepartmentOd} of ${rosterSize} faculty ${isToday ? "on official duty today" : `on official duty on ${formatDisplayDate(statusDate)}`}`}
-                progressPercent={odPercent}
+                icon={CheckIcon}
+                iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+                label="Pending HR approvals"
+                value={actionableRequests.length + actionableAppraisals.length}
+                caption={`${actionableRequests.filter((r) => r.kind === "leave").length} leave · ${actionableRequests.filter((r) => r.kind === "od").length} OD · ${actionableAppraisals.length} appraisal`}
+                progressPercent={rosterSize ? ((actionableRequests.length + actionableAppraisals.length) / rosterSize) * 100 : 0}
               />
             </Link>
-
-            <Link href="/hr/employee-reviews" className="block h-full">
-              <HRStatCard
-                icon={AwardIcon}
-                iconClassName="bg-purple-50 text-purple-600"
-                label="Pending Appraisals"
-                value={`${data.pending_appraisals_count} reviews`}
-                caption="HOD-reviewed, awaiting HR"
-                cornerDot={data.pending_appraisals_count > 0}
-              />
-            </Link>
-
             <Link href="/hr/payroll" className="block h-full">
               <HRStatCard
                 icon={RupeeIcon}
-                iconClassName="bg-green-50 text-green-600"
-                label="Payroll Status"
-                value={`${data.payroll.completion_percent}% Complete`}
-                caption={`${data.payroll.processed_count} of ${data.payroll.total_active_faculty} faculty this month`}
-                cornerDot={data.payroll.completion_percent < 100}
+                iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+                label={`${new Date().toLocaleDateString("en-IN", { month: "long" })} payroll`}
+                value={formatRupees(grossThisMonth)}
+                caption={`${data.payroll.completion_percent}% verified · ${data.payroll.processed_count} of ${data.payroll.total_active_faculty}`}
                 progressPercent={data.payroll.completion_percent}
               />
             </Link>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="flex flex-col gap-6 lg:col-span-2">
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="flex items-center gap-2 text-base font-bold text-slate-900">
-                    <BarChartIcon className="h-4.5 w-4.5 text-slate-400" />
-                    Department Overview
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/hr/departments"
-                      className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      View All Departments
-                    </Link>
-                    <Link
-                      href="/hr/reports"
-                      className="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                      View Reports
-                    </Link>
+            <HRCard
+              title={`Attendance & leave — ${scopeLabel}`}
+              actions={
+                <Link href="/hr/faculty-attendance" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  Detail ›
+                </Link>
+              }
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Casual leave</p>
+                  <p className="mt-1 text-2xl font-black text-slate-900">{casualInScope}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Earned / vacation</p>
+                  <p className="mt-1 text-2xl font-black text-slate-900">{earnedInScope}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">On official duty</p>
+                  <p className="mt-1 text-2xl font-black text-slate-900">{onDutyInScope}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Unapproved absence{scope !== "today" ? " (today)" : ""}</p>
+                  <p className="mt-1 text-2xl font-black text-[#2655DA]">{unaccountedAbsentToday}</p>
+                </div>
+              </div>
+
+              {leaveUtilisation.length > 0 && (
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <p className="mb-3 text-xs text-slate-500">Leave balance utilisation · academic year to date</p>
+                  <div className="flex flex-col gap-3">
+                    {leaveUtilisation.map(({ leaveType, percent }) => (
+                      <div key={leaveType.id}>
+                        <div className="mb-1 flex items-center justify-between text-sm">
+                          <span className="text-slate-700">
+                            {leaveType.name} ({leaveType.default_annual_quota}/yr)
+                          </span>
+                          <span className="font-semibold text-slate-900">{percent.toFixed(0)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
+              )}
+            </HRCard>
+
+            <HRCard
+              title="Approvals queue"
+              actions={slaBreaches.length > 0 ? <HRPill tone="blue">{slaBreaches.length} overdue</HRPill> : undefined}
+            >
+              <div className="flex flex-col divide-y divide-slate-100">
+                {actionableRequests.slice(0, 4).map((request) => (
+                  <div key={request.id} className="flex items-center gap-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(request.id)}
+                      onChange={() => toggleSelected(request.id)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-700"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{fullName(request.faculty)}</p>
+                      <p className="text-xs text-slate-500">
+                        {request.faculty.department.name} · {request.kind === "leave" ? "Casual leave" : "OD"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => approveOne(request)}
+                      disabled={decision.isPending}
+                      className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EEF2FF] text-[#2655DA] hover:bg-[#E0E7FF]"
+                      aria-label="Approve"
+                    >
+                      <CheckIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => rejectOne(request)}
+                      disabled={decision.isPending}
+                      className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200"
+                      aria-label="Reject"
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                {actionableRequests.length === 0 && <p className="py-6 text-center text-sm text-slate-500">Nothing waiting on you.</p>}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button variant="primary" className="flex-1" disabled={selectedIds.size === 0} onClick={approveSelected}>
+                  Approve selected ({selectedIds.size})
+                </Button>
+                <Button variant="secondary" className="flex-1" onClick={() => router.push("/hr/requests")}>
+                  Open queue
+                </Button>
+              </div>
+            </HRCard>
+
+            <HRCard title="Needs attention" actions={<HRPill tone="blue">{needsAttention.length} flags</HRPill>}>
+              {needsAttention.length === 0 ? (
+                <p className="text-sm text-slate-500">Nothing needs attention right now.</p>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {needsAttention.map((item) => (
+                    <li key={item.label} className="flex items-start gap-2.5">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                        <p className="text-xs text-slate-500">{item.caption}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </HRCard>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <HRCard
+                title="Department overview"
+                actions={
+                  <div className="flex items-center gap-2">
+                    <Link href="/hr/departments">
+                      <Button variant="secondary" size="sm">
+                        All departments
+                      </Button>
+                    </Link>
+                    <Link href="/hr/reports">
+                      <Button variant="secondary" size="sm">
+                        Reports
+                      </Button>
+                    </Link>
+                  </div>
+                }
+              >
                 <DataTable<HrDepartmentRollup>
                   columns={[
                     { key: "name", header: "Department" },
                     { key: "total_faculty", header: "Total Faculty" },
                     {
                       key: "on_leave_today",
-                      header: isToday ? "On Leave Today" : `On Leave — ${formatDisplayDate(statusDate)}`,
+                      header: "On Leave Today",
                       render: (row) =>
                         `${row.on_leave_today} (${row.total_faculty ? ((row.on_leave_today / row.total_faculty) * 100).toFixed(1) : "0.0"}%)`,
                     },
                     {
                       key: "on_od_today",
-                      header: isToday ? "On OD Today" : `On OD — ${formatDisplayDate(statusDate)}`,
+                      header: "On OD Today",
                       render: (row) =>
                         `${row.on_od_today} (${row.total_faculty ? ((row.on_od_today / row.total_faculty) * 100).toFixed(1) : "0.0"}%)`,
                     },
@@ -369,69 +590,133 @@ export default function HRDashboardPage() {
                       ),
                     },
                   ]}
-                  rows={departmentRows}
+                  rows={data.department_overview}
                   rowKey={(row) => row.id}
-                  emptyMessage="No data for this department."
                   onRowClick={(row) => router.push(`/hr/departments/${row.id}`)}
                 />
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-5">
-                <h3 className="text-base font-bold text-slate-900">Recent Activity</h3>
-                <p className="mt-4 text-sm text-slate-500">
-                  Activity tracking for leave/OD/appraisal/payroll actions isn&apos;t available yet.
-                </p>
-              </div>
+              </HRCard>
             </div>
 
-            <div className="flex flex-col gap-6">
-              <div className="rounded-lg border border-slate-200 bg-white p-5">
-                <h3 className="text-base font-bold text-slate-900">Quick Actions</h3>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  {QUICK_ACTIONS.map((action) => (
-                    <Link
-                      key={action.label}
-                      href={action.href}
-                      className="flex flex-col items-start gap-2 rounded-lg border border-slate-200 p-3.5 text-sm font-medium text-slate-700 hover:border-blue-200 hover:bg-blue-50/50"
-                    >
-                      <action.icon className="h-5 w-5 text-blue-700" />
-                      {action.label}
-                    </Link>
-                  ))}
-                </div>
+            <HRCard
+              title={`Appraisal cycle ${currentYear}–${String((currentYear + 1) % 100).padStart(2, "0")}`}
+              actions={
+                <Link href="/hr/employee-reviews" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  Open ›
+                </Link>
+              }
+            >
+              <div className="flex flex-col gap-3">
+                {APPRAISAL_PIPELINE_STEPS.map((step) => {
+                  const count = appraisalCountByStatus[step.key] ?? 0;
+                  const percent = allAppraisals.length ? (count / allAppraisals.length) * 100 : 0;
+                  return (
+                    <div key={step.key}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="text-slate-700">{step.label}</span>
+                        <span className="font-semibold text-slate-900">
+                          {count} / {allAppraisals.length}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full rounded-full bg-blue-600" style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              <div className="rounded-lg border border-slate-200 bg-white p-5">
-                <h3 className="text-base font-bold text-slate-900">Payroll Summary</h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {data.payroll.processed_count} of {data.payroll.total_active_faculty} faculty processed this month
-                </p>
-
-                <div className="mt-4">
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full bg-blue-600"
-                      style={{ width: `${data.payroll.completion_percent}%` }}
-                    />
-                  </div>
-                </div>
-
-                <Link
-                  href="/hr/payroll"
-                  className="mt-5 flex w-full items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
-                >
-                  Review & Finalize Payroll
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
+                <span className="text-slate-500">Mean score</span>
+                <span className="font-semibold text-slate-900">{meanScore != null ? `${meanScore.toFixed(1)} / 100` : "—"}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-slate-500">Below threshold (&lt;50)</span>
+                <Link href="/hr/employee-reviews" className="font-semibold text-blue-700 hover:text-blue-800">
+                  {belowThresholdCount} faculty ›
                 </Link>
               </div>
-            </div>
+            </HRCard>
           </div>
 
-          <PendingActionsDrawer
-            open={pendingActionsOpen}
-            requests={actionableRequests}
-            appraisals={actionableAppraisals}
-            onClose={() => setPendingActionsOpen(false)}
-          />
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <HRCard
+              title="Payroll & compliance"
+              className="lg:col-span-1"
+              actions={
+                <Link href="/hr/payroll" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  Open run ›
+                </Link>
+              }
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Gross this month</p>
+                  <p className="mt-1 text-xl font-black text-slate-900">{formatRupees(grossThisMonth)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Payslip requests open</p>
+                  <p className="mt-1 text-xl font-black text-slate-900">{payslipRequests.data?.data.length ?? 0}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
+                <span className="text-slate-500">Form 16 issued</span>
+                <span className="font-semibold text-slate-900">{data.payroll.processed_count} / {data.payroll.total_active_faculty}</span>
+              </div>
+            </HRCard>
+
+            <HRCard
+              title="Recruitment pipeline"
+              actions={
+                <Link href="/hr/recruitment" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  {(vacancies ?? []).reduce((sum, v) => sum + v.positions, 0)} open roles ›
+                </Link>
+              }
+            >
+              {(vacancies ?? []).length === 0 ? (
+                <p className="text-sm text-slate-500">No open positions yet.</p>
+              ) : (
+                <div className="flex flex-col divide-y divide-slate-100">
+                  {(vacancies ?? []).slice(0, 4).map((vacancy) => (
+                    <div key={vacancy.id} className="flex items-center justify-between gap-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{vacancy.role}</p>
+                        <p className="text-xs text-slate-500">
+                          {vacancy.departmentName} · {vacancy.positions} position{vacancy.positions === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs font-semibold capitalize text-slate-500">{vacancy.stage}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </HRCard>
+
+            <HRCard
+              title="Recent activity"
+              actions={
+                <Link href="/hr/requests" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                  View all ›
+                </Link>
+              }
+            >
+              {(approvedRequests.data?.data ?? []).length === 0 ? (
+                <p className="text-sm text-slate-500">No activity recorded yet.</p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-slate-100">
+                  {[...(approvedRequests.data?.data ?? [])]
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .slice(0, 4)
+                    .map((r) => (
+                      <li key={r.id} className="py-2.5">
+                        <p className="text-sm text-slate-800">
+                          {r.kind === "leave" ? "Leave" : "OD"} approved for {fullName(r.faculty)}
+                        </p>
+                        <p className="text-xs text-slate-400">{new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </HRCard>
+          </div>
         </>
       )}
     </div>

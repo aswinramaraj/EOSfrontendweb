@@ -1,14 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { StatusPill, type PillTone } from "@/shared/components/ui/StatusPill";
+import { Button } from "@/shared/components/ui/Button";
 import { ApiError } from "@/shared/lib/api-client";
+import { CheckIcon, FileTextIcon, InboxIcon } from "@/shared/components/icons";
 import { fullName } from "@/modules/faculty/lib/faculty-format";
 import { usePayslipRequests } from "@/modules/hr/hooks/usePayslipRequests";
 import { PayslipDecisionModal } from "@/modules/hr/components/PayslipDecisionModal";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRStatCard } from "@/modules/hr/components/HRStatCard";
+import { HRSegmentedTabs } from "@/modules/hr/components/ui/HRSegmentedTabs";
+import { HRFilterBar } from "@/modules/hr/components/ui/HRFilterBar";
+import { HRListRowsSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 import type { PayslipRequest, PayslipRequestStatus } from "@/modules/hr/types/api";
 
 const ALL = "all";
@@ -51,6 +56,14 @@ export default function HRPayslipRequestsPage() {
 
   const allRequests = useMemo(() => data?.data ?? [], [data]);
 
+  const pendingCount = allRequests.filter((r) => r.status === "pending").length;
+  const correctionsCount = allRequests.filter((r) => r.purpose?.toLowerCase().includes("correction")).length;
+  const certificatesCount = allRequests.filter((r) => r.purpose?.toLowerCase().includes("certificate")).length;
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const closedThisMonth = allRequests.filter(
+    (r) => r.status !== "pending" && r.requested_at.slice(0, 7) === currentMonthKey,
+  ).length;
+
   const tabs: { key: Tab; label: string; count: number }[] = useMemo(
     () => [
       { key: "all", label: "All", count: allRequests.length },
@@ -73,13 +86,14 @@ export default function HRPayslipRequestsPage() {
   function resetFilters() {
     setSearch("");
     setMonth(ALL);
+    setActiveTab("all");
   }
 
   return (
     <div>
-      <PageHeader
+      <HRPageHeader
         title="Payslip Requests"
-        description="Faculty requests for a payslip — approve to let them generate it themselves, or reject it."
+        description="Corrections, reissues and salary certificates raised by employees."
       />
 
       {error && (
@@ -88,48 +102,44 @@ export default function HRPayslipRequestsPage() {
         </p>
       )}
 
-      <div className="mb-5 inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === tab.key ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-800"
-            }`}
-          >
-            {tab.label}
-            <span
-              className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${
-                activeTab === tab.key ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
-              }`}
-            >
-              {tab.count}
-            </span>
-          </button>
-        ))}
+      <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <HRStatCard icon={InboxIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Open requests" value={pendingCount} />
+        <HRStatCard icon={FileTextIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Corrections" value={correctionsCount} />
+        <HRStatCard icon={FileTextIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Salary certificates" value={certificatesCount} />
+        <HRStatCard icon={CheckIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Closed this month" value={closedThisMonth} />
       </div>
 
-      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput placeholder="Search faculty..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <SelectInput className="sm:w-52" value={month} onChange={(e) => setMonth(e.target.value)}>
-          <option value={ALL}>All Months</option>
-          {MONTH_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </SelectInput>
-        <button onClick={resetFilters} className="text-sm font-medium text-blue-700 hover:text-blue-800">
-          Reset Filters
-        </button>
+      <div className="mb-5">
+        <HRSegmentedTabs
+          value={activeTab}
+          onChange={setActiveTab}
+          options={tabs.map((t) => ({ value: t.key, label: t.label, count: t.count }))}
+        />
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white">
-        {isLoading && <p className="px-5 py-10 text-center text-sm text-slate-500">Loading…</p>}
-        {!isLoading &&
-          filtered.map((request) => (
+      <HRFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search employee or request type…"
+        onReset={resetFilters}
+        resultCount={{ showing: filtered.length, total: allRequests.length, noun: "records" }}
+        filters={
+          <SelectInput className="w-auto" value={month} onChange={(e) => setMonth(e.target.value)}>
+            <option value={ALL}>All Months</option>
+            {MONTH_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </SelectInput>
+        }
+      />
+
+      {isLoading && <HRListRowsSkeleton rows={5} />}
+
+      {!isLoading && (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          {filtered.map((request) => (
             <div key={request.id} className="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 last:border-b-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -145,18 +155,12 @@ export default function HRPayslipRequestsPage() {
                   <StatusPill tone={STATUS_TONE[request.status]}>{STATUS_LABEL[request.status]}</StatusPill>
                   {request.status === "pending" && (
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setDecision({ request, action: "rejected" })}
-                        className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => setDecision({ request, action: "rejected" })}>
                         Reject
-                      </button>
-                      <button
-                        onClick={() => setDecision({ request, action: "processed" })}
-                        className="rounded-md bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800"
-                      >
+                      </Button>
+                      <Button variant="primary" size="sm" onClick={() => setDecision({ request, action: "processed" })}>
                         Approve
-                      </button>
+                      </Button>
                     </div>
                   )}
                   {request.status === "processed" && request.file_url && (
@@ -174,10 +178,11 @@ export default function HRPayslipRequestsPage() {
             </div>
           ))}
 
-        {!isLoading && filtered.length === 0 && (
-          <p className="px-5 py-10 text-center text-sm text-slate-500">No payslip requests match these filters.</p>
-        )}
-      </div>
+          {filtered.length === 0 && (
+            <p className="px-5 py-10 text-center text-sm text-slate-500">No payslip requests match these filters.</p>
+          )}
+        </div>
+      )}
 
       <PayslipDecisionModal
         request={decision?.request ?? null}

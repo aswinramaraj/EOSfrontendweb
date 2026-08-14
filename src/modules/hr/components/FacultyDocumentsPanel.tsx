@@ -52,7 +52,7 @@ export function FacultyDocumentsPanel({ facultyId }: FacultyDocumentsPanelProps)
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <SelectInput className="flex-1" value={documentType} onChange={(e) => setDocumentType(e.target.value)}>
             {DOCUMENT_TYPE_OPTIONS.map((opt) => (
@@ -76,7 +76,7 @@ export function FacultyDocumentsPanel({ facultyId }: FacultyDocumentsPanelProps)
         <p className="mt-2 text-xs text-slate-500">Accepted formats: {DOCUMENT_FORMAT_HINT}.</p>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white">
+      <div className="rounded-xl border border-slate-200 bg-white">
         {isLoading && <p className="px-5 py-8 text-center text-sm text-slate-500">Loading…</p>}
         {!isLoading && (documents?.length ?? 0) === 0 && (
           <p className="px-5 py-8 text-center text-sm text-slate-500">No documents uploaded for this faculty yet.</p>

@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { DataTable } from "@/shared/components/ui/DataTable";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
+import { Button } from "@/shared/components/ui/Button";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { CopyIcon, PencilIcon, PlusIcon, TrashIcon } from "@/shared/components/icons";
+import { CopyIcon, LayersIcon, PencilIcon, PeopleIcon, PlusIcon, TargetIcon, TrashIcon } from "@/shared/components/icons";
 import { AppraisalCriterionFormModal } from "@/modules/hr/components/AppraisalCriterionFormModal";
 import {
   useAppraisalCriteria,
@@ -16,6 +15,11 @@ import {
   useCreateAppraisalCriterion,
   useDeleteAppraisalCriterion,
 } from "@/modules/hr/hooks/useAppraisalCriteria";
+import { useFaculties } from "@/modules/faculty/hooks/useFaculties";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRStatCard } from "@/modules/hr/components/HRStatCard";
+import { HRFilterBar } from "@/modules/hr/components/ui/HRFilterBar";
+import { HRStatGridSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 import type { AppraisalCriterion } from "@/modules/hr/types/api";
 
 const ALL = "all";
@@ -42,13 +46,18 @@ export default function HRCriteriaLibraryPage() {
   });
   const createCriterion = useCreateAppraisalCriterion();
   const deleteCriterion = useDeleteAppraisalCriterion();
+  const { data: facultyCount } = useFaculties({ limit: 1 });
+
+  const allRows = useMemo(() => data?.data ?? [], [data]);
 
   const filtered = useMemo(() => {
-    const rows = data?.data ?? [];
     const query = search.trim().toLowerCase();
-    if (!query) return rows;
-    return rows.filter((row) => row.criteria_name.toLowerCase().includes(query));
-  }, [data, search]);
+    if (!query) return allRows;
+    return allRows.filter((row) => row.criteria_name.toLowerCase().includes(query));
+  }, [allRows, search]);
+
+  const totalMaxScore = allRows.reduce((sum, row) => sum + row.max_score, 0);
+  const divisionCount = new Set(allRows.map((row) => row.division_id)).size;
 
   function handleDuplicate(row: AppraisalCriterion) {
     createCriterion.mutate(
@@ -76,52 +85,71 @@ export default function HRCriteriaLibraryPage() {
     });
   }
 
+  function resetFilters() {
+    setSearch("");
+    setDivisionId(ALL);
+    setAcademicYear(ALL);
+  }
+
   return (
     <div>
-      <PageHeader
+      <HRPageHeader
         title="Criteria Library"
-        description="Define and manage appraisal criteria for faculty performance reviews."
+        description="Define weighted appraisal criteria used across all faculty performance reviews."
         actions={
-          <button
+          <Button
+            variant="primary"
             onClick={() => {
               setEditingCriterion(null);
               setFormOpen(true);
             }}
-            className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
           >
             <PlusIcon className="h-4 w-4" />
             New Criterion
-          </button>
+          </Button>
         }
       />
 
-      <div className="mb-5 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            placeholder="Search criteria..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {isLoading ? (
+        <div className="mb-5">
+          <HRStatGridSkeleton count={4} />
         </div>
+      ) : (
+        <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <HRStatCard icon={LayersIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Active criteria" value={allRows.length} caption={`Across ${divisionCount} divisions`} />
+          <HRStatCard icon={TargetIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Total max score" value={totalMaxScore} />
+          <HRStatCard icon={PeopleIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Applied to" value={facultyCount?.meta.total ?? 0} caption="All teaching and support staff" />
+          <HRStatCard icon={LayersIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Divisions" value={divisionCount} />
+        </div>
+      )}
 
-        <SelectInput className="sm:w-44" value={divisionId} onChange={(e) => setDivisionId(e.target.value)}>
-          <option value={ALL}>All Divisions</option>
-          {divisions?.map((division) => (
-            <option key={division.id} value={String(division.id)}>
-              {division.name}
-            </option>
-          ))}
-        </SelectInput>
-
-        <SelectInput className="sm:w-36" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
-          <option value={ALL}>All Years</option>
-          {ACADEMIC_YEAR_OPTIONS.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </SelectInput>
-      </div>
+      <HRFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search criteria…"
+        onReset={resetFilters}
+        resultCount={{ showing: filtered.length, total: allRows.length, noun: "records" }}
+        filters={
+          <>
+            <SelectInput className="w-auto" value={divisionId} onChange={(e) => setDivisionId(e.target.value)}>
+              <option value={ALL}>All Divisions</option>
+              {divisions?.map((division) => (
+                <option key={division.id} value={String(division.id)}>
+                  {division.name}
+                </option>
+              ))}
+            </SelectInput>
+            <SelectInput className="w-auto" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
+              <option value={ALL}>All Years</option>
+              {ACADEMIC_YEAR_OPTIONS.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </SelectInput>
+          </>
+        }
+      />
 
       <DataTable<AppraisalCriterion>
         isLoading={isLoading}
@@ -172,6 +200,8 @@ export default function HRCriteriaLibraryPage() {
         rowKey={(row) => row.id}
         emptyMessage="No criteria match these filters."
       />
+
+      <p className="mt-5 text-xs text-slate-400">Total weight must equal 100 for a cycle to be published · current total {totalMaxScore}.</p>
 
       <AppraisalCriterionFormModal open={formOpen} criterion={editingCriterion} onClose={() => setFormOpen(false)} />
 

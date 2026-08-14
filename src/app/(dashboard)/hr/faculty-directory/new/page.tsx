@@ -7,7 +7,7 @@ import { FacultyCreateWizard } from "@/modules/faculty/components/wizard/Faculty
 export default function HRAddFacultyPage() {
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <nav className="text-sm text-slate-500">
           <Link href="/hr" className="hover:text-slate-700">
             Home
@@ -27,7 +27,9 @@ export default function HRAddFacultyPage() {
         </Link>
       </div>
 
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">Add Faculty</h1>
+      <h1 className="mb-6 text-[28px] font-extrabold leading-tight tracking-tight text-slate-900 sm:text-[32px]">
+        Add Faculty
+      </h1>
 
       <FacultyCreateWizard basePath="/hr/faculty-directory" draftKey="eos.hr.faculty.create.draft" />
     </div>

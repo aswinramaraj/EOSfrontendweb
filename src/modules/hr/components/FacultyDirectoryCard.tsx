@@ -2,6 +2,7 @@ import { EnvelopeIcon, PhoneIcon } from "@/shared/components/icons";
 import { StatusPill } from "@/shared/components/ui/StatusPill";
 import { FacultyAvatar } from "@/modules/faculty/components/FacultyAvatar";
 import { fullName } from "@/modules/faculty/lib/faculty-format";
+import { HOVERABLE } from "@/modules/hr/components/ui/hoverable";
 import type { Faculty } from "@/modules/faculty/types";
 
 function yearsSince(dateString: string | null | undefined): number | null {
@@ -21,7 +22,7 @@ export function FacultyDirectoryCard({ faculty, onOpenProfile }: FacultyDirector
   const experience = yearsSince(faculty.date_of_joining);
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5">
+    <div className={`flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 ${HOVERABLE}`}>
       <div className="flex items-center gap-3">
         <FacultyAvatar faculty={faculty} className="h-11 w-11 rounded-full text-sm" />
         <div className="min-w-0">
