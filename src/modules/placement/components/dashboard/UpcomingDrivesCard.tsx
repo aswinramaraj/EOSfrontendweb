@@ -5,38 +5,50 @@ interface UpcomingDrivesCardProps {
   drives: UpcomingDrive[];
 }
 
+/** Exact values transcribed from Placement Module v2.dc.html's Drives this month block. */
 export function UpcomingDrivesCard({ drives }: UpcomingDrivesCardProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-base font-bold text-slate-900">Upcoming drives</h3>
-          <p className="mt-0.5 text-sm text-slate-500">Next four weeks</p>
-        </div>
-        <Link
-          href="/placement/drives"
-          className="shrink-0 rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50"
-        >
-          View all
-        </Link>
-      </div>
+    <div style={{ background: "#fff", border: "1px solid #e2e7ef", borderRadius: 12, padding: "18px 20px" }}>
+      <div style={{ fontSize: 14, fontWeight: 650 }}>Drives this month</div>
+      <div style={{ fontSize: 11.5, color: "#8b95a6", marginTop: 2 }}>Scheduled and in progress</div>
 
-      <div className="mt-5 flex flex-col gap-4">
+      <div style={{ display: "flex", flexDirection: "column", marginTop: 10 }}>
         {drives.map((d) => (
-          <div key={d.id} className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-full bg-blue-700 text-white">
-              <span className="text-sm font-bold leading-none">{d.day}</span>
-              <span className="text-[9px] font-semibold uppercase leading-none">{d.month}</span>
+          <Link
+            key={d.id}
+            href="/placement/drives"
+            style={{ display: "flex", gap: 12, alignItems: "center", padding: "11px 4px", borderTop: "1px solid #f1f4f8" }}
+            className="hover:bg-[#f8fafc]"
+          >
+            <div
+              style={{
+                width: 40,
+                height: 42,
+                borderRadius: 8,
+                background: "#f4f7fc",
+                border: "1px solid #e7ecf4",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                lineHeight: 1.15,
+              }}
+            >
+              <span style={{ fontFamily: "var(--font-ibm-plex-mono)", fontSize: 13, fontWeight: 500 }}>{d.day}</span>
+              <span style={{ fontSize: 9, color: "#8b95a6", letterSpacing: ".6px" }}>{d.month}</span>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{d.company}</p>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600 }}>{d.company}</div>
               {(d.role || d.venue) && (
-                <p className="text-xs text-slate-500">{[d.role, d.venue].filter(Boolean).join(" · ")}</p>
+                <div style={{ fontSize: 11, color: "#8b95a6", marginTop: 1 }}>{[d.role, d.venue].filter(Boolean).join(" · ")}</div>
               )}
             </div>
-          </div>
+            <span style={{ display: "inline-block", fontSize: 11, fontWeight: 600, padding: "3.5px 9px", borderRadius: 5, whiteSpace: "nowrap", background: "#eaf0fe", color: "#1f4fd8" }}>
+              Upcoming
+            </span>
+          </Link>
         ))}
-        {drives.length === 0 && <p className="text-sm text-slate-500">No drives scheduled yet.</p>}
+        {drives.length === 0 && <p style={{ fontSize: 13, color: "#96a0b0" }}>No drives scheduled yet.</p>}
       </div>
     </div>
   );

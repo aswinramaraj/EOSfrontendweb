@@ -17,6 +17,15 @@ export const driveFormSchema = z
     venue: z.string().trim().max(200).optional(),
     registrationStart: z.string().optional(),
     registrationEnd: z.string().optional(),
+    // Real once query.md #14 runs — accepted but silently dropped by the
+    // backend's $queryRaw fallback until then.
+    mode: z.enum(["on_campus", "virtual"]).optional(),
+    backlogsAllowed: z.string().trim().max(50).optional(),
+    eligibleDepartmentCodes: z.string().trim().max(200).optional(),
+    round1Label: z.string().trim().max(100).optional(),
+    round2Label: z.string().trim().max(100).optional(),
+    round3Label: z.string().trim().max(100).optional(),
+    resultDeclarationNote: z.string().trim().max(200).optional(),
   })
   .refine((v) => v.isDisclosed || !!v.disclosedRevealDate, {
     path: ["disclosedRevealDate"],
