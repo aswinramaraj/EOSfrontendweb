@@ -40,3 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+brain.md
+admin-faculty-endpoints.md
+
+# /admin dashboard shell isn't designed yet — this is a local-only preview
+# (sidebar trimmed to just Students/Faculty for visibility). Keep it off
+# GitHub until the real design is decided; /admin/faculty is unaffected.
+src/app/admin/page.tsx
+
+faculty-import-sample.csv
