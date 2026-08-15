@@ -65,6 +65,29 @@ export function useUpdateOfferResponse() {
   });
 }
 
+export function useUpdateOfferDetails() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      driveId,
+      studentId,
+      offerResponse,
+      joiningDate,
+      workLocation,
+    }: {
+      driveId: number;
+      studentId: number;
+      offerResponse: OfferResponseStatus;
+      joiningDate?: string;
+      workLocation?: string;
+    }) => applicationsService.updateOfferDetails(driveId, studentId, { offerResponse, joiningDate, workLocation }),
+    onSuccess: (_data, { driveId }) => {
+      queryClient.invalidateQueries({ queryKey: placementKeys.applications.list(driveId) });
+      queryClient.invalidateQueries({ queryKey: placementKeys.offers() });
+    },
+  });
+}
+
 export function useUpdateOfferedPackage() {
   const queryClient = useQueryClient();
   return useMutation({

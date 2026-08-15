@@ -1,7 +1,7 @@
 import { apiClient } from "@/shared/lib/api-client";
 import { requireToken } from "@/shared/lib/auth-token";
 import { buildQuery } from "@/shared/lib/query-string";
-import type { ClassPlacementRecord, DepartmentPlacementRecord, UpcomingDrive } from "../types";
+import type { AttentionFlag, PackageBand, PlacementFunnel, TopRecruiter, TrendPoint, UpcomingDrive } from "../types";
 
 export interface PlacementStats {
   totalCompanies: number;
@@ -11,15 +11,19 @@ export interface PlacementStats {
   studentsInProcess: number;
   studentsInProcessDriveCount: number;
   studentsPlaced: number;
+  acceptedOffersCount: number;
   highestPackageLpa: number;
   averagePackageLpa: number;
   offersByMonth: { month: string; count: number }[];
   upcomingDrives: UpcomingDrive[];
   eligibleStudentsTotal: number;
   placementRate: number;
-  classWise: ClassPlacementRecord[];
-  departmentWise: DepartmentPlacementRecord[];
   placementRateByDepartment: { department: string; placed: number; total: number }[];
+  funnel: PlacementFunnel;
+  packageBands: PackageBand[];
+  sixYearTrend: TrendPoint[];
+  topRecruiters: TopRecruiter[];
+  attentionFlags: AttentionFlag[];
 }
 
 // Computed entirely server-side in one request (DrivesService.getPlacementStats)
