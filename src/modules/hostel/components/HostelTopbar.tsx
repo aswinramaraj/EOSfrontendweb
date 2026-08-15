@@ -12,7 +12,7 @@ interface HostelTopbarProps {
 
 export function HostelTopbar({ user, onOpenMobileNav, onLogout }: HostelTopbarProps) {
   return (
-    <header className="relative isolate z-10 overflow-hidden bg-linear-to-r from-blue-800 via-blue-700 to-blue-500 px-6 py-4">
+    <header className="relative isolate z-10 overflow-hidden bg-linear-to-r from-blue-700 via-blue-600 to-blue-500 px-6 py-4">
       <div className="animate-header-glow absolute inset-y-0 left-0 z-0 w-1/3 -skew-x-12 bg-linear-to-r from-transparent via-white/25 to-transparent" />
 
       <div className="relative z-10 flex items-center justify-between gap-4">

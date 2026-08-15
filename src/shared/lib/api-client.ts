@@ -39,7 +39,17 @@ async function request<T>(
   options: RequestInit = {},
   token?: string | null,
 ): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const url = `${API_BASE_URL}${path}`;
+  const method = options.method ?? "GET";
+
+  // eslint-disable-next-line no-console
+  console.log("[apiClient] request", {
+    url,
+    method,
+    body: options.body ?? null,
+  });
+
+  const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -48,10 +58,38 @@ async function request<T>(
     },
   });
 
-  if (!res.ok) await throwApiError(res);
+  const rawText = await res.text();
+  let body: unknown = null;
+  try {
+    body = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    body = null;
+  }
 
-  const body = await res.json().catch(() => null);
-  return (body as ApiEnvelope<T>).data;
+  // eslint-disable-next-line no-console
+  console.log("[apiClient] response", {
+    url,
+    method,
+    status: res.status,
+    body: body ?? rawText,
+  });
+
+  if (!res.ok) {
+    const err = body as ApiErrorEnvelope | null;
+    let message: string;
+    if (Array.isArray(err?.message)) {
+      message = err.message.join(", ");
+    } else if (err?.message) {
+      message = err.message;
+    } else if (rawText) {
+      message = `[${res.status}] ${rawText}`;
+    } else {
+      message = `Request failed with status ${res.status} and no response body.`;
+    }
+    throw new ApiError(message, res.status, err?.errorCode ?? "UNKNOWN_ERROR");
+  }
+
+  return body ? (body as ApiEnvelope<T>).data : (undefined as T);
 }
 
 async function requestForm<T>(
@@ -114,6 +152,12 @@ export const apiClient = {
     request<T>(
       path,
       { method: "POST", body: body ? JSON.stringify(body) : undefined },
+      token,
+    ),
+  put: <T>(path: string, body?: unknown, token?: string | null) =>
+    request<T>(
+      path,
+      { method: "PUT", body: body ? JSON.stringify(body) : undefined },
       token,
     ),
   patch: <T>(path: string, body?: unknown, token?: string | null) =>

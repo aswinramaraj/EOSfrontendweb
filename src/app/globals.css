@@ -1,8 +1,96 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8fa;
+  --foreground: #111827;
+
+  /* Primary ramp — matches the mobile app's brand blue (#2F6FE0, gradient
+     end-stop #1A3D8F) so both products share one visual identity. */
+  --c-primary-50: #eaf0fd;
+  --c-primary-100: #dce8fb;
+  --c-primary-200: #bfd3f5;
+  --c-primary-500: #2f6fe0;
+  --c-primary-600: #2f6fe0;
+  --c-primary-700: #1a3d8f;
+
+  /* Secondary navy — the app's bottom-tab-bar-active / secondary-accent
+     color, used sparingly as a deeper alternative to the primary blue. */
+  --c-secondary-navy: #1e3a8a;
+
+  /* Neutral ramp (cool-tuned) */
+  --c-gray-25: #fcfcfd;
+  --c-gray-50: #f7f8fa;
+  --c-gray-100: #f1f3f6;
+  --c-gray-200: #eef0f4;
+  --c-gray-300: #e5e7eb;
+  --c-gray-400: #9aa6b2;
+  --c-gray-500: #6b7280;
+  --c-gray-600: #4b5563;
+  --c-gray-700: #374151;
+  --c-gray-800: #1f2937;
+  --c-gray-900: #111827;
+
+  /* Semantic (50 / 200 / 600 / 700) */
+  --c-success-50: #f0fdf4;
+  --c-success-600: #16a34a;
+  --c-success-700: #067647;
+  --c-warning-50: #fef3c7;
+  --c-warning-600: #d97706;
+  --c-warning-700: #b54708;
+  --c-danger-50: #fef2f2;
+  --c-danger-600: #dc2626;
+  --c-danger-700: #b42318;
+
+  /* Data ramp: strength, not tone */
+  --data-strong: var(--c-primary-600);
+  --data-mid: #5d8ce0;
+  --data-weak: var(--c-primary-200);
+  --data-muted: var(--c-gray-300);
+
+  --surface-header: #eaf0fd;
+  --surface-input: #f9fafb;
+  --border-subtle: var(--c-gray-200);
+  --border-default: var(--c-gray-300);
+
+  --text-primary: var(--c-gray-900);
+  --text-secondary: var(--c-gray-600);
+  --text-tertiary: var(--c-gray-500);
+  --text-muted: #8a93a3;
+  --icon-muted: #b0b7c3;
+
+  /* Type scale */
+  --fs-2xs: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.875rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --tracking-tight: -0.011em;
+
+  /* Spacing (4px base) */
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+
+  /* Radii */
+  --r-md: 8px;
+  --r-xl: 14px;
+  --r-full: 999px;
+
+  /* Elevation — shadow tint matches the app's shadowColor (#0F172A) at the
+     same low opacities used on every mobile card (~0.06). */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+
+  /* Shell */
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 68px;
+  --topbar-h: 60px;
+  --content-max: 1720px;
+  --c-white: #ffffff;
+  --border-header: #dce8fb;
 }
 
 @theme inline {
@@ -10,19 +98,29 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Remap Tailwind's built-in blue color scale to the shared brand ramp so
+     every bg-blue, text-blue and border-blue utility across the whole app
+     (not just Fees & Finance) already matches the mobile app without
+     editing each component file. */
+  --color-blue-50: #eaf0fd;
+  --color-blue-100: #dce8fb;
+  --color-blue-200: #bfd3f5;
+  --color-blue-300: #93b3ea;
+  --color-blue-400: #5d8ce0;
+  --color-blue-500: #2f6fe0;
+  --color-blue-600: #2f6fe0;
+  --color-blue-700: #1a3d8f;
+  --color-blue-800: #16337a;
+  --color-blue-900: #122960;
+  --color-blue-950: #0b1a3d;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes header-glow-sweep {
@@ -46,4 +144,47 @@ body {
 
 .animate-header-glow {
   animation: header-glow-sweep 5s ease-in-out infinite;
+}
+
+@keyframes finance-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.finance-fade-in {
+  animation: finance-fade-in 0.35s ease-out both;
+}
+
+@keyframes finance-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.finance-slide-up {
+  animation: finance-slide-up 0.4s ease-out both;
+}
+
+/* Receipt print isolation — the receipt is portaled to a direct child of
+   <body>, so this single rule hides every other top-level child (sidebar,
+   topbar, page content) regardless of how deeply nested they are, leaving
+   only the receipt visible in the print preview/output. */
+@media print {
+  body > *:not(#receipt-print-root) {
+    display: none !important;
+  }
+  #receipt-print-root {
+    display: block !important;
+  }
 }
