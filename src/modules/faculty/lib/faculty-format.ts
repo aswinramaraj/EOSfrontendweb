@@ -7,8 +7,18 @@ export function formatFacultyCode(id: number): string {
   return `FAC${String(id).padStart(4, "0")}`;
 }
 
-export function fullName(faculty: Pick<Faculty, "first_name" | "last_name">): string {
-  return `${faculty.first_name} ${faculty.last_name}`.trim();
+interface NameParts {
+  prefix?: string | null;
+  first_name: string;
+  last_name: string;
+}
+
+// Structural (not `Pick<Faculty, ...>`) so any faculty-shaped object with an
+// optional `prefix` — the full `Faculty` type, or a lighter API ref like
+// `ApiFacultyRef` — can use this without extending `Faculty` itself.
+export function fullName(faculty: NameParts): string {
+  const prefix = faculty.prefix?.trim();
+  return `${prefix ? `${prefix} ` : ""}${faculty.first_name} ${faculty.last_name}`.trim();
 }
 
 export function initialsOf(faculty: Pick<Faculty, "first_name" | "last_name">): string {

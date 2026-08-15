@@ -82,7 +82,7 @@ export default function FacultyAttendancePage() {
         <FacultyStatCard label="Absent — Today" value={data?.today.absent ?? 0} icon={AlertTriangleIcon} tone="red" />
         <FacultyStatCard
           label="On Duty / Leave — Today"
-          value={data?.today.on_duty_or_leave ?? 0}
+          value={(data?.today.on_duty ?? 0) + (data?.today.on_vacation ?? 0) + (data?.today.on_leave ?? 0)}
           icon={PeopleIcon}
           tone="blue"
         />
@@ -177,7 +177,7 @@ export default function FacultyAttendancePage() {
                   <td className="px-4 py-3 text-slate-700">{row.full_days}</td>
                   <td className="px-4 py-3 text-slate-700">{row.half_days}</td>
                   <td className="px-4 py-3 text-slate-700">{row.absent}</td>
-                  <td className="px-4 py-3 text-slate-700">{row.on_duty_or_leave}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.on_duty + row.on_vacation + row.on_leave}</td>
                   <td className="px-4 py-3">
                     <StatusPill tone={percentageTone(row.attendance_percentage)}>
                       {row.attendance_percentage}%
