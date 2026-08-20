@@ -14,6 +14,7 @@ const ROLE_HOME: Partial<Record<Role, string>> = {
   placement: "/placement",
   hr_payroll: "/hr",
   gate_warden: "/hostel",
+  secretary: "/secretary",
   iqac: "/iqac",
 };
 
