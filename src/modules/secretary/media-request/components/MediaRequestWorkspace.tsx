@@ -9,7 +9,7 @@ import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { BellIcon, CheckIcon, FileTextIcon, HistoryIcon } from "@/shared/components/icons";
+import { CheckIcon, FileTextIcon, HistoryIcon, SecretaryBellIcon } from "@/shared/components/icons";
 import { numberFieldOptions } from "@/shared/lib/rhf-helpers";
 import { SecretaryField } from "@/modules/secretary/components/SecretaryField";
 import { RequestHistoryTable, type HistoryRow } from "@/modules/secretary/components/RequestHistoryTable";
@@ -146,7 +146,7 @@ export function MediaRequestWorkspace() {
           title="Notifications"
           type="button"
         >
-          <BellIcon className="h-[18px] w-[18px]" />
+          <SecretaryBellIcon className="h-[18px] w-[18px]" />
         </button>
       </div>
 

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { ApiError } from "@/shared/lib/api-client";
-import { CalendarIcon, PeopleIcon, PersonIcon } from "@/shared/components/icons";
+import { PeopleIcon, PersonIcon, SecretaryCalendarIcon } from "@/shared/components/icons";
 import { SecretaryField } from "@/modules/secretary/components/SecretaryField";
 import { buildClassLabeler } from "@/modules/secretary/lib/class-label";
 import {
@@ -157,7 +157,7 @@ export function TimetableWorkspace() {
       {!isLoading && !error && (classId || facultyId) && (
         <div className="overflow-hidden rounded-2xl border border-[#E3E8EF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
           <div className="flex items-center gap-[10px] border-b border-[#E3E8EF] px-5 py-4">
-            <CalendarIcon className="h-[17px] w-[17px] text-blue-600" />
+            <SecretaryCalendarIcon className="h-[17px] w-[17px] text-blue-600" />
             <div className="text-[15.5px] font-semibold text-slate-900">{gridTitle}</div>
             <span className="text-[12.5px] text-slate-400">{gridSub}</span>
           </div>
