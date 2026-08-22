@@ -13,6 +13,7 @@ export const dashboardService = {
       studentsInProcess: stats.studentsInProcess,
       studentsInProcessDriveCount: stats.studentsInProcessDriveCount,
       studentsPlaced: stats.studentsPlaced,
+      acceptedOffersCount: stats.acceptedOffersCount,
       // No historical snapshot to compare against yet.
       studentsPlacedYoyPct: 0,
       placementPercentage: stats.placementRate,
@@ -21,6 +22,12 @@ export const dashboardService = {
       offersByMonth: stats.offersByMonth,
       placementRateByDepartment: stats.placementRateByDepartment,
       upcomingDrives: stats.upcomingDrives,
+      eligibleStudentsTotal: stats.eligibleStudentsTotal,
+      funnel: stats.funnel,
+      packageBands: stats.packageBands,
+      sixYearTrend: stats.sixYearTrend,
+      topRecruiters: stats.topRecruiters,
+      attentionFlags: stats.attentionFlags,
     };
   },
 };

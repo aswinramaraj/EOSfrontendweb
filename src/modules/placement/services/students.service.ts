@@ -1,6 +1,6 @@
 import { apiClient } from "@/shared/lib/api-client";
 import { requireToken } from "@/shared/lib/auth-token";
-import type { EligibleStudent } from "../types";
+import type { ApplicationStatus, EligibleStudent, OfferResponseStatus, StudentProfile } from "../types";
 
 interface BackendStudentProfile {
   id: number;
@@ -28,6 +28,84 @@ function toStudent(s: BackendStudentProfile): EligibleStudent {
   };
 }
 
+interface BackendStudentApplication {
+  drive_id: number;
+  company_name: string;
+  job_role: string | null;
+  status: ApplicationStatus;
+  updated_at: string;
+}
+
+interface BackendStudentOffer {
+  drive_id: number;
+  company_name: string;
+  job_role: string | null;
+  offered_package: number | null;
+  offer_response: OfferResponseStatus | null;
+  updated_at: string;
+}
+
+interface BackendStudentProfileDetail {
+  id: number;
+  student_id_no: string;
+  register_no: string | null;
+  name: string;
+  email: string;
+  department_name: string | null;
+  department_code: string | null;
+  year: number | null;
+  photo_url: string | null;
+  resume_url: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  leetcode_url: string | null;
+  hackerrank_url: string | null;
+  codeforces_url: string | null;
+  drives_applied: number;
+  offers_count: number;
+  status: ApplicationStatus | null;
+  applications: BackendStudentApplication[];
+  offers: BackendStudentOffer[];
+}
+
+function toStudentProfile(r: BackendStudentProfileDetail): StudentProfile {
+  return {
+    id: r.id,
+    studentIdNo: r.student_id_no,
+    registerNo: r.register_no,
+    name: r.name,
+    email: r.email,
+    departmentName: r.department_name ?? undefined,
+    departmentCode: r.department_code ?? undefined,
+    year: r.year,
+    photoUrl: r.photo_url,
+    resumeUrl: r.resume_url,
+    linkedinUrl: r.linkedin_url,
+    githubUrl: r.github_url,
+    leetcodeUrl: r.leetcode_url,
+    hackerrankUrl: r.hackerrank_url,
+    codeforcesUrl: r.codeforces_url,
+    drivesApplied: r.drives_applied,
+    offersCount: r.offers_count,
+    status: r.status,
+    applications: r.applications.map((a) => ({
+      driveId: a.drive_id,
+      companyName: a.company_name,
+      jobRole: a.job_role ?? undefined,
+      status: a.status,
+      updatedAt: a.updated_at,
+    })),
+    offers: r.offers.map((o) => ({
+      driveId: o.drive_id,
+      companyName: o.company_name,
+      jobRole: o.job_role ?? undefined,
+      offeredPackageLpa: o.offered_package,
+      offerResponse: o.offer_response,
+      updatedAt: o.updated_at,
+    })),
+  };
+}
+
 export const studentsService = {
   // GET /student-profiles caps `limit` at 100 per page — unlike /drives
   // (small enough to fit one page), the full roster can exceed that, and
@@ -47,5 +125,13 @@ export const studentsService = {
       rows.push(...res.data);
     }
     return rows.map(toStudent);
+  },
+
+  async getProfile(id: number): Promise<StudentProfile> {
+    const row = await apiClient.get<BackendStudentProfileDetail>(
+      `/drives/students/${id}/profile`,
+      requireToken(),
+    );
+    return toStudentProfile(row);
   },
 };

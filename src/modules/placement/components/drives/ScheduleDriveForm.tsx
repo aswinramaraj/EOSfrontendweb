@@ -12,7 +12,7 @@ import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { DatePicker } from "@/shared/components/ui/DatePicker";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { numberFieldOptions } from "@/shared/lib/rhf-helpers";
+import { numberFieldOptions, textFieldOptions } from "@/shared/lib/rhf-helpers";
 import { useCompanies } from "../../hooks/useCompanies";
 import { useCreateCompany } from "../../hooks/useCompanyMutations";
 import { useCreateDrive } from "../../hooks/useDriveMutations";
@@ -29,6 +29,13 @@ const EMPTY_DEFAULTS: DriveFormValues = {
   venue: undefined,
   registrationStart: undefined,
   registrationEnd: undefined,
+  mode: undefined,
+  backlogsAllowed: undefined,
+  eligibleDepartmentCodes: undefined,
+  round1Label: undefined,
+  round2Label: undefined,
+  round3Label: undefined,
+  resultDeclarationNote: undefined,
 };
 
 export function ScheduleDriveForm() {
@@ -179,6 +186,72 @@ export function ScheduleDriveForm() {
             max="2030-12-31"
           />
         </FormField>
+      </div>
+
+      <div className="mt-4 border-t border-slate-100 pt-4">
+        <p className="mb-3 text-sm font-semibold text-slate-700">Additional details</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Mode" htmlFor="drive-mode" error={errors.mode?.message}>
+            <SelectInput
+              id="drive-mode"
+              hasError={!!errors.mode}
+              value={watch("mode") ?? ""}
+              onChange={(e) => setValue("mode", (e.target.value || undefined) as DriveFormValues["mode"], { shouldValidate: true })}
+            >
+              <option value="">Not set</option>
+              <option value="on_campus">On campus</option>
+              <option value="virtual">Virtual</option>
+            </SelectInput>
+          </FormField>
+          <FormField label="Backlogs allowed" htmlFor="drive-backlogs" error={errors.backlogsAllowed?.message}>
+            <TextInput
+              id="drive-backlogs"
+              placeholder="e.g. None"
+              hasError={!!errors.backlogsAllowed}
+              {...register("backlogsAllowed", textFieldOptions)}
+            />
+          </FormField>
+          <FormField label="Eligible departments" htmlFor="drive-depts" error={errors.eligibleDepartmentCodes?.message}>
+            <TextInput
+              id="drive-depts"
+              placeholder="e.g. CSE, IT, AIDS"
+              hasError={!!errors.eligibleDepartmentCodes}
+              {...register("eligibleDepartmentCodes", textFieldOptions)}
+            />
+          </FormField>
+          <FormField label="Result declaration" htmlFor="drive-result-note" error={errors.resultDeclarationNote?.message}>
+            <TextInput
+              id="drive-result-note"
+              placeholder="e.g. Same week as the final round"
+              hasError={!!errors.resultDeclarationNote}
+              {...register("resultDeclarationNote", textFieldOptions)}
+            />
+          </FormField>
+          <FormField label="Round 1" htmlFor="drive-round1" error={errors.round1Label?.message}>
+            <TextInput
+              id="drive-round1"
+              placeholder="e.g. Online assessment"
+              hasError={!!errors.round1Label}
+              {...register("round1Label", textFieldOptions)}
+            />
+          </FormField>
+          <FormField label="Round 2" htmlFor="drive-round2" error={errors.round2Label?.message}>
+            <TextInput
+              id="drive-round2"
+              placeholder="e.g. Technical interview"
+              hasError={!!errors.round2Label}
+              {...register("round2Label", textFieldOptions)}
+            />
+          </FormField>
+          <FormField label="Round 3" htmlFor="drive-round3" error={errors.round3Label?.message}>
+            <TextInput
+              id="drive-round3"
+              placeholder="e.g. HR interview"
+              hasError={!!errors.round3Label}
+              {...register("round3Label", textFieldOptions)}
+            />
+          </FormField>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-4 border-t border-slate-100 pt-4">

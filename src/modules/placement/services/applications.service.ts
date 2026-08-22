@@ -112,6 +112,24 @@ export const applicationsService = {
     );
   },
 
+  // One PATCH for the whole "Update offer status" modal — response plus the
+  // real (once query.md #16 runs) joining_date/work_location fields.
+  async updateOfferDetails(
+    driveId: number,
+    studentId: number,
+    input: { offerResponse: OfferResponseStatus; joiningDate?: string; workLocation?: string },
+  ): Promise<void> {
+    await apiClient.patch(
+      `/drives/${driveId}/applications/${studentId}`,
+      {
+        offer_response: input.offerResponse,
+        joining_date: input.joiningDate,
+        work_location: input.workLocation,
+      },
+      requireToken(),
+    );
+  },
+
   async remove(driveId: number, studentId: number): Promise<void> {
     await apiClient.delete(`/drives/${driveId}/applications/${studentId}`, requireToken());
   },

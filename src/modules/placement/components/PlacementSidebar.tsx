@@ -2,86 +2,141 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { XIcon } from "@/shared/components/icons";
-import { PLACEMENT_NAV } from "../nav";
-import { useUnreadNotificationsCount } from "../hooks/useNotifications";
+import { ChevronsLeftIcon, ChevronsRightIcon } from "@/shared/components/icons";
+import { PLACEMENT_NAV, type PlacementNavItem } from "../nav";
+import { useCompanies } from "../hooks/useCompanies";
+import { useDrives } from "../hooks/useDrives";
+import { useEligibleStudents } from "../hooks/useEligibleStudents";
 
 interface PlacementSidebarProps {
-  mobileOpen: boolean;
-  onCloseMobile: () => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
-export function PlacementSidebar({ mobileOpen, onCloseMobile }: PlacementSidebarProps) {
+export function PlacementSidebar({ collapsed, onToggleCollapsed }: PlacementSidebarProps) {
   const pathname = usePathname();
-  const unreadCount = useUnreadNotificationsCount();
+  const students = useEligibleStudents();
+  const companies = useCompanies({ page_size: 1 });
+  const drives = useDrives();
 
-  const content = (
-    <>
-      <div className="flex items-center justify-end px-4 py-3 lg:hidden">
-        <button
-          onClick={onCloseMobile}
-          className="text-slate-400 hover:text-slate-600"
-          aria-label="Close menu"
-        >
-          <XIcon className="h-5 w-5" />
-        </button>
-      </div>
-
-      <nav className="flex flex-col gap-1.5 overflow-y-auto px-3 py-4">
-        <p className="px-3 pb-2 pt-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-          Placement Cell
-        </p>
-        {PLACEMENT_NAV.map((item) => {
-          const active = item.href === "/placement" ? pathname === "/placement" : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          const showBadge = item.href === "/placement/notifications" && unreadCount > 0;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onCloseMobile}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold transition-colors ${
-                active ? "bg-blue-50 text-blue-700" : "text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                  active ? "bg-blue-100" : "bg-slate-100"
-                }`}
-              >
-                <Icon className="h-[19px] w-[19px]" />
-              </span>
-              <span className="flex-1">{item.label}</span>
-              {showBadge && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-700 px-1 text-[11px] font-semibold text-white">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-    </>
-  );
+  const badgeValues: Partial<Record<PlacementNavItem["badgeKey"] & string, number>> = {
+    students: students.data?.length,
+    companies: companies.data?.total,
+    drives: drives.data?.length,
+  };
 
   return (
-    <>
-      <aside className="hidden h-full w-65 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white lg:flex">
-        {content}
-      </aside>
+    <aside
+      style={{
+        width: collapsed ? 76 : 246,
+        flex: `0 0 ${collapsed ? 76 : 246}px`,
+        background: "#ffffff",
+        color: "#46536a",
+        borderRight: "1px solid #e6eaf1",
+        transition: "flex-basis .18s ease, width .18s ease",
+      }}
+      className="flex h-full flex-col overflow-y-auto"
+    >
+      <nav style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 16 }}>
+        {PLACEMENT_NAV.map((group, groupIndex) => (
+          <div key={group.label} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {(!collapsed || groupIndex === 0) && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: collapsed ? "center" : "space-between",
+                  padding: "4px 10px 6px 10px",
+                }}
+              >
+                {!collapsed && (
+                  <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "1.1px", color: "#9aa5b8" }}>
+                    {group.label}
+                  </span>
+                )}
+                {groupIndex === 0 && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapsed}
+                    aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+                    title={collapsed ? "Expand navigation" : "Collapse navigation"}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      color: "#9aa5b8",
+                      flexShrink: 0,
+                    }}
+                    className="hover:bg-[#f3f6fc] hover:text-[#5b6577]"
+                  >
+                    {collapsed ? (
+                      <ChevronsRightIcon style={{ width: 15, height: 15 }} />
+                    ) : (
+                      <ChevronsLeftIcon style={{ width: 15, height: 15 }} />
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+            {group.items.map((item) => {
+              const active = item.href === "/placement" ? pathname === "/placement" : pathname.startsWith(item.href);
+              const Icon = item.icon;
+              const badge = item.badgeKey ? badgeValues[item.badgeKey] : undefined;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={collapsed ? item.label : undefined}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "9px 11px",
+                    borderRadius: 9,
+                    fontSize: 14,
+                    justifyContent: collapsed ? "center" : undefined,
+                    background: active ? "#e8f0fe" : undefined,
+                    color: active ? "#1f4fd8" : "#3f4b60",
+                    fontWeight: active ? 650 : 500,
+                  }}
+                  className="hover:bg-[#f3f6fc]"
+                >
+                  <Icon style={{ width: 19, height: 19, flexShrink: 0, opacity: 0.9 }} />
+                  {!collapsed && (
+                    <>
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {badge != null && (
+                        <span
+                          style={{
+                            fontFamily: "var(--font-ibm-plex-mono)",
+                            fontSize: 10.5,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                            background: active ? "#dbe6ff" : "#eff2f7",
+                            color: active ? "#1f4fd8" : "#77808f",
+                          }}
+                        >
+                          {badge.toLocaleString("en-IN")}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
-          <div
-            className="fixed inset-0 bg-black/30"
-            onClick={onCloseMobile}
-            aria-hidden="true"
-          />
-          <aside className="relative flex h-full w-65 flex-col overflow-y-auto bg-white shadow-xl">
-            {content}
-          </aside>
+      {!collapsed && (
+        <div style={{ padding: "14px 18px", borderTop: "1px solid #eef1f6" }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: "#16224a" }}>Placement Cell Helpdesk</div>
+          <div style={{ fontSize: 11, color: "#8b95a6", marginTop: 3 }}>Block B, Ground Floor · ext. 2043</div>
         </div>
       )}
-    </>
+    </aside>
   );
 }

@@ -2,31 +2,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { Button } from "@/shared/components/ui/Button";
-import { StatCard } from "@/shared/components/ui/StatCard";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
+import { ApiError } from "@/shared/lib/api-client";
 import { StatusPill } from "@/shared/components/ui/StatusPill";
-import { DataTable, type DataTableColumn } from "@/shared/components/ui/DataTable";
-import { PaginationBar } from "@/shared/components/ui/PaginationBar";
+import { Button } from "@/shared/components/ui/Button";
 import { Drawer } from "@/shared/components/ui/Drawer";
 import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
-import { ApiError } from "@/shared/lib/api-client";
+import { PlacementStatCard } from "@/modules/placement/components/PlacementStatCard";
 import {
-  ActivityIcon,
-  AlertTriangleIcon,
-  BusIcon,
+  PlacementTable,
+  placementResetButtonStyle,
+  placementSearchInputStyle,
+  type PlacementTableColumn,
+} from "@/modules/placement/components/table/PlacementTable";
+import { pageButtonStyle } from "@/modules/placement/lib/pageButtonStyle";
+import {
   ChevronRightIcon,
   DownloadIcon,
-  EyeIcon,
-  HomeIcon,
-  IdCardIcon,
   PencilIcon,
-  PeopleIcon,
-  PersonIcon,
   SendIcon,
   StarIcon,
   UploadIcon,
+  IdCardIcon,
   UserPlusIcon,
 } from "@/shared/components/icons";
 import { useStudents } from "@/modules/students/hooks/useStudents";
@@ -85,8 +81,23 @@ function KvRow({ label, value, muted, reason }: { label: string; value: string; 
   );
 }
 
+function tabButtonStyle(active: boolean, disabled: boolean): React.CSSProperties {
+  return {
+    height: 32,
+    borderRadius: 8,
+    padding: "0 14px",
+    fontSize: 12.5,
+    fontWeight: 600,
+    border: "1px solid transparent",
+    background: disabled ? undefined : active ? "#1f4fd8" : undefined,
+    color: disabled ? "#c3cad4" : active ? "#fff" : "#3f4b60",
+    cursor: disabled ? "not-allowed" : "pointer",
+  };
+}
+
 export default function AdminStudentsPage() {
   const [query, setQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const debouncedQuery = useDebouncedValue(query);
   const [filters, setFilters] = useState<StudentFiltersValue>({});
   const [activeTab, setActiveTab] = useState("all");
@@ -94,7 +105,6 @@ export default function AdminStudentsPage() {
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     () => new Set(COLUMN_OPTIONS.map((c) => c.key)),
   );
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [quickViewRow, setQuickViewRow] = useState<StudentListItem | null>(null);
 
   const params: ListStudentsParams = {
@@ -116,19 +126,12 @@ export default function AdminStudentsPage() {
     setActiveTab(tab.id);
     setFilters(tab.filters);
     setPage(1);
-    setSelectedIds(new Set());
   }
 
   function updateFilters(next: StudentFiltersValue) {
     setFilters(next);
     setActiveTab("all"); // manual filter changes fall out of the preset tabs
     setPage(1);
-    setSelectedIds(new Set());
-  }
-
-  function goToPage(next: number) {
-    setPage(next);
-    setSelectedIds(new Set());
   }
 
   function toggleColumn(key: string) {
@@ -141,217 +144,153 @@ export default function AdminStudentsPage() {
   }
 
   const pageRows = data?.data ?? [];
-  const allOnPageSelected = pageRows.length > 0 && pageRows.every((row) => selectedIds.has(row.id));
-  const someOnPageSelected = pageRows.some((row) => selectedIds.has(row.id));
 
-  function toggleRow(row: StudentListItem) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(row.id)) next.delete(row.id);
-      else next.add(row.id);
-      return next;
-    });
-  }
-
-  function toggleAllOnPage() {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allOnPageSelected) {
-        pageRows.forEach((row) => next.delete(row.id));
-      } else {
-        pageRows.forEach((row) => next.add(row.id));
-      }
-      return next;
-    });
-  }
-
-  const columns: DataTableColumn<StudentListItem>[] = [
+  const columns: PlacementTableColumn<StudentListItem>[] = [
     {
       key: "student",
-      header: "Student",
-      render: (row) => {
+      label: "Student",
+      width: "1.3fr",
+      strong: true,
+      leading: (row) => {
         const tint = avatarTint(row.id);
         return (
-          <div className="flex items-center gap-3">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold"
-              style={row.photo_url ? undefined : { background: tint.bg, color: tint.fg }}
-            >
-              {row.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element -- a Supabase Storage URL, not a local/optimizable asset
-                <img src={row.photo_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                initials(row.first_name, row.last_name)
-              )}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-medium text-slate-900">{studentName(row.first_name, row.last_name)}</p>
-              <p className="text-xs text-slate-500">
-                {row.roll_no ?? row.student_id_no} · {row.register_no ?? "—"}
-              </p>
-            </div>
-          </div>
+          <span
+            className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-semibold"
+            style={row.photo_url ? undefined : { background: tint.bg, color: tint.fg }}
+          >
+            {row.photo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a Supabase Storage URL, not a local/optimizable asset
+              <img src={row.photo_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              initials(row.first_name, row.last_name)
+            )}
+          </span>
         );
       },
+      render: (row) => ({
+        text: studentName(row.first_name, row.last_name),
+        sub: `${row.roll_no ?? row.student_id_no} · ${row.register_no ?? "—"}`,
+      }),
     },
     {
       key: "department",
-      header: "Department",
-      render: (row) => (
-        <div>
-          <p className="font-medium text-slate-900">{row.department?.name ?? "—"}</p>
-          <p className="text-xs text-slate-500">
-            {row.course?.code ?? "—"}
-            {row.class?.section ? ` · Sec ${row.class.section}` : ""}
-          </p>
-        </div>
-      ),
+      label: "Department",
+      width: "1.1fr",
+      render: (row) => ({
+        text: row.department?.name ?? "—",
+        sub: `${row.course?.code ?? "—"}${row.class?.section ? ` · Sec ${row.class.section}` : ""}`,
+      }),
     },
     {
       key: "batch",
-      header: "Batch",
-      render: (row) => row.batch?.name ?? "—",
+      label: "Batch",
+      width: ".8fr",
+      render: (row) => ({ text: row.batch?.name ?? "—" }),
     },
     {
       key: "type",
-      header: "Type",
-      render: (row) => (
-        <StatusPill tone={row.student_type === "hosteller" ? "blue" : "slate"}>
-          {row.student_type === "hosteller" ? "Hosteller" : "Day scholar"}
-        </StatusPill>
-      ),
+      label: "Type",
+      width: ".8fr",
+      type: "badge",
+      render: (row) => ({ text: row.student_type === "hosteller" ? "Hosteller" : "Day scholar" }),
     },
     {
       key: "status",
-      header: "Status",
-      render: (row) => (
-        <StatusPill tone={row.status === "active" ? "green" : "slate"}>
-          {row.status === "active" ? "Active" : "Inactive"}
-        </StatusPill>
-      ),
+      label: "Status",
+      width: ".7fr",
+      type: "badge",
+      render: (row) => ({ text: row.status === "active" ? "Active" : "Inactive" }),
     },
     {
       key: "contact",
-      header: "Contact",
-      render: (row) => (
-        <div>
-          <p className="text-slate-700">{row.phone ?? "—"}</p>
-          <p className="truncate text-xs text-slate-500">{row.email}</p>
-        </div>
-      ),
+      label: "Contact",
+      width: "1.1fr",
+      render: (row) => ({ text: row.phone ?? "—", sub: row.email }),
     },
     {
       key: "admission_date",
-      header: "Admitted",
+      label: "Admitted",
+      width: ".8fr",
       align: "right",
-      render: (row) => <span className="text-slate-500">{formatDate(row.admission_date)}</span>,
+      render: (row) => ({ text: formatDate(row.admission_date) }),
     },
     {
       key: "actions",
-      header: "Actions",
+      label: "",
+      width: "1.5fr",
+      type: "action",
       align: "right",
-      render: (row) => (
-        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            title="Quick view"
-            aria-label={`Quick view ${studentName(row.first_name, row.last_name)}`}
-            onClick={() => setQuickViewRow(row)}
-            className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-          >
-            <EyeIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            disabled
-            title="Edit — student edit page not built yet"
-            aria-label={`Edit ${studentName(row.first_name, row.last_name)}`}
-            className="cursor-not-allowed rounded-md p-1.5 text-slate-300"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            disabled
-            title="Timeline — no per-student activity endpoint yet"
-            aria-label={`Timeline for ${studentName(row.first_name, row.last_name)}`}
-            className="cursor-not-allowed rounded-md p-1.5 text-slate-300"
-          >
-            <ActivityIcon className="h-4 w-4" />
-          </button>
-        </div>
-      ),
+      actions: (row) => [
+        { label: "View", onClick: () => setQuickViewRow(row) },
+        { label: "Edit", disabled: true, title: "Student edit page not built yet", onClick: () => {} },
+        { label: "Timeline", disabled: true, title: "No per-student activity endpoint yet", onClick: () => {} },
+      ],
     },
   ];
 
   return (
-    <div>
-      <nav className="mb-3 flex items-center gap-1.5 text-sm text-slate-500">
-        <Link href="/admin" className="hover:text-slate-700">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <nav className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "#8b95a6" }}>
+        <Link href="/admin" className="hover:text-[#1f4fd8]">
           Home
         </Link>
         <ChevronRightIcon className="h-3.5 w-3.5" />
-        <span className="font-medium text-slate-700">Students</span>
+        <span style={{ fontWeight: 600, color: "#3f4b60" }}>Students</span>
       </nav>
 
-      <PageHeader
-        title="Students"
-        description={
-          total.data !== undefined && active.data !== undefined
-            ? `${total.data.toLocaleString()} records · ${active.data.toLocaleString()} active`
-            : "Loading roll…"
-        }
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" disabled title="Import — module planned">
-              <UploadIcon className="h-4 w-4" /> Import
-            </Button>
-            <Button
-              variant="secondary"
-              disabled
-              title={
-                selectedIds.size > 0
-                  ? `ID cards for ${selectedIds.size} selected — module planned`
-                  : "Select students, then ID cards — module planned"
-              }
-            >
-              <IdCardIcon className="h-4 w-4" /> ID cards
-            </Button>
-            <Link href="/admin/students/admit">
-              <Button variant="primary">
-                <UserPlusIcon className="h-4 w-4" /> Admit student
-              </Button>
-            </Link>
-          </div>
-        }
-      />
-
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Total in view" value={total.data ?? "…"} icon={PeopleIcon} tone="blue" />
-        <StatCard label="Active" value={active.data ?? "…"} icon={PersonIcon} tone="green" />
-        {/* "slate", not red/amber — matches this same page's own StatusPill
-            convention where inactive renders as a neutral gray pill, not an
-            alert color; an inactive count isn't inherently a problem. */}
-        <StatCard label="Inactive" value={inactive.data ?? "…"} icon={AlertTriangleIcon} tone="slate" />
-        <StatCard label="Hostellers" value={hostellers.data ?? "…"} icon={HomeIcon} tone="slate" />
-        <StatCard label="Day scholars" value={dayscholars.data ?? "…"} icon={BusIcon} tone="slate" />
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <h1 style={{ margin: 0, fontSize: 26, letterSpacing: "-.7px", fontWeight: 680 }}>Students</h1>
+          <p style={{ margin: "5px 0 0 0", fontSize: 13, color: "#77808f" }}>
+            {total.data !== undefined && active.data !== undefined
+              ? `${total.data.toLocaleString()} records · ${active.data.toLocaleString()} active`
+              : "Loading roll…"}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 9 }}>
+          <button type="button" disabled title="Import — module planned" style={{ ...pageButtonStyle(false), opacity: 0.5, cursor: "not-allowed" }}>
+            <span className="inline-flex items-center gap-1.5">
+              <UploadIcon className="h-3.5 w-3.5" /> Import
+            </span>
+          </button>
+          <button
+            type="button"
+            disabled
+            title="ID cards — module planned"
+            style={{ ...pageButtonStyle(false), opacity: 0.5, cursor: "not-allowed" }}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <IdCardIcon className="h-3.5 w-3.5" /> ID cards
+            </span>
+          </button>
+          <Link href="/admin/students/admit">
+            <button type="button" style={pageButtonStyle(true)}>
+              <span className="inline-flex items-center gap-1.5">
+                <UserPlusIcon className="h-3.5 w-3.5" /> Admit student
+              </span>
+            </button>
+          </Link>
+        </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12 }}>
+        <PlacementStatCard label="Total in view" value={total.data ?? "…"} />
+        <PlacementStatCard label="Active" value={active.data ?? "…"} />
+        <PlacementStatCard label="Inactive" value={inactive.data ?? "…"} />
+        <PlacementStatCard label="Hostellers" value={hostellers.data ?? "…"} />
+        <PlacementStatCard label="Day scholars" value={dayscholars.data ?? "…"} />
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => selectTab(tab)}
               disabled={!!tab.soonReason}
               title={tab.soonReason}
-              className={`rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                tab.soonReason
-                  ? "cursor-not-allowed text-slate-300"
-                  : activeTab === tab.id
-                    ? "bg-blue-700 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
-              }`}
+              style={tabButtonStyle(activeTab === tab.id, !!tab.soonReason)}
+              className={activeTab !== tab.id && !tab.soonReason ? "hover:bg-[#f3f6fb]" : undefined}
             >
               {tab.label}
             </button>
@@ -361,60 +300,52 @@ export default function AdminStudentsPage() {
           type="button"
           disabled
           title="Save current view — no saved-views backend yet"
-          className="flex cursor-not-allowed items-center gap-1.5 text-sm font-medium text-slate-300"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#c3cad4", background: "none", border: "none", cursor: "not-allowed" }}
         >
           <StarIcon className="h-3.5 w-3.5" /> Save current view
         </button>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="max-w-sm flex-1">
-          <SearchInput
-            name="student_search"
-            placeholder="Search by name, roll no, register no, email…"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(1);
-              setSelectedIds(new Set());
-            }}
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-xs text-slate-400 sm:inline">Click a row for a quick view</span>
-          {selectedIds.size > 0 && (
-            <span className="text-xs font-medium text-slate-500">{selectedIds.size} selected</span>
-          )}
-          <ColumnsMenu columns={COLUMN_OPTIONS} visible={visibleColumns} onToggle={toggleColumn} />
-          <Button variant="secondary" disabled title="Export — no CSV export endpoint yet">
-            <DownloadIcon className="h-4 w-4" /> Export
-          </Button>
-        </div>
-      </div>
+      <StudentFilters value={filters} onChange={updateFilters} onClearAll={() => updateFilters({})} />
 
-      <div className="mb-4">
-        <StudentFilters value={filters} onChange={updateFilters} onClearAll={() => updateFilters({})} />
-      </div>
-
-      <DataTable
+      <PlacementTable
+        toolbar={
+          <>
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Search by name, roll no, register no, email…"
+              style={placementSearchInputStyle(searchFocused)}
+            />
+            <span style={{ fontSize: 11.5, color: "#8b95a6" }}>Click a row for a quick view</span>
+            <ColumnsMenu columns={COLUMN_OPTIONS} visible={visibleColumns} onToggle={toggleColumn} />
+            <button
+              type="button"
+              disabled
+              title="Export — no CSV export endpoint yet"
+              style={{ ...placementResetButtonStyle(false), display: "inline-flex", alignItems: "center", gap: 6, opacity: 0.5, cursor: "not-allowed" }}
+            >
+              <DownloadIcon className="h-3.5 w-3.5" /> Export
+            </button>
+          </>
+        }
         columns={columns.filter((col) => visibleColumns.has(col.key))}
         rows={pageRows}
         rowKey={(row) => row.id}
-        isLoading={isLoading}
-        error={error instanceof ApiError ? error.message : error ? "Failed to load students." : null}
-        emptyMessage="No students match this view."
-        selection={{
-          isSelected: (row) => selectedIds.has(row.id),
-          onToggle: toggleRow,
-          onToggleAll: toggleAllOnPage,
-          allSelected: allOnPageSelected,
-          someSelected: someOnPageSelected,
-        }}
         onRowClick={setQuickViewRow}
+        sort={null}
+        onSortChange={() => {}}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        totalCount={data?.meta.total}
+        emptyMessage={isLoading ? "Loading…" : error instanceof ApiError ? error.message : error ? "Failed to load students." : "No students match this view."}
       />
-      {data && (
-        <PaginationBar page={data.meta.page} pageSize={data.meta.limit} total={data.meta.total} onPageChange={goToPage} />
-      )}
 
       <Drawer
         open={quickViewRow !== null}
@@ -514,7 +445,7 @@ export default function AdminStudentsPage() {
         )}
       </Drawer>
 
-      <p className="mt-3 text-xs leading-relaxed text-slate-400">
+      <p className="text-xs leading-relaxed text-slate-400">
         Showing only what the database actually has today: identity, batch/course/department, residence type,
         status, contact, and admission date. CGPA, attendance %, fee status and placement are intentionally left
         out — none of those exist as queryable per-student data yet (no marks/grades module, no attendance

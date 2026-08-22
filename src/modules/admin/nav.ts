@@ -63,7 +63,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: "Academics",
     items: [
-      { href: "/admin/academics", label: "Academic structure", icon: LayersIcon, soon: true },
+      { href: "/admin/academics", label: "Academic structure", icon: LayersIcon },
       { href: "/admin/attendance", label: "Attendance", icon: CalendarCheckIcon, soon: true },
       { href: "/admin/marks", label: "Marks & Grades", icon: ClipboardIcon, soon: true },
       { href: "/admin/examinations", label: "Examinations", icon: AwardIcon, soon: true },

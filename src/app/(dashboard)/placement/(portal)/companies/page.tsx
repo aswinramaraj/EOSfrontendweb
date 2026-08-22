@@ -1,83 +1,75 @@
 "use client";
 
-import { useState } from "react";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { Button } from "@/shared/components/ui/Button";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
-import { DataTable, type DataTableColumn } from "@/shared/components/ui/DataTable";
-import { PaginationBar } from "@/shared/components/ui/PaginationBar";
-import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
-import { PlusIcon } from "@/shared/components/icons";
-import { useToast } from "@/shared/components/ui/ToastProvider";
+import { useMemo, useState } from "react";
 import { ApiError } from "@/shared/lib/api-client";
-import { useDebouncedValue } from "@/shared/hooks/useDebouncedValue";
-import { useCompanies } from "@/modules/placement/hooks/useCompanies";
+import { useToast } from "@/shared/components/ui/ToastProvider";
+import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
+import { useCompanyReport } from "@/modules/placement/hooks/useCompanyReport";
 import { useDeleteCompany } from "@/modules/placement/hooks/useCompanyMutations";
 import { CompanyFormModal } from "@/modules/placement/components/companies/CompanyFormModal";
 import { CompanyDetailModal } from "@/modules/placement/components/companies/CompanyDetailModal";
-import type { Company } from "@/modules/placement/types";
+import { PlacementStatCard } from "@/modules/placement/components/PlacementStatCard";
+import {
+  PlacementTable,
+  placementResetButtonStyle,
+  placementSearchInputStyle,
+  placementSelectStyle,
+  type PlacementTableColumn,
+  type PlacementTableSort,
+} from "@/modules/placement/components/table/PlacementTable";
+import { pageButtonStyle } from "@/modules/placement/lib/pageButtonStyle";
+import { COMPANY_INDUSTRIES, type Company, type CompanyReportRow, type RecruiterStatus } from "@/modules/placement/types";
 
 const PAGE_SIZE = 10;
 
-function initials(name: string): string {
-  const words = name.trim().split(/\s+/);
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return words.map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+function statusLabel(status: RecruiterStatus): string {
+  if (status === "returning") return "Returning";
+  if (status === "new") return "New";
+  return "Not yet recruited";
 }
 
-export default function CompaniesPage() {
-  const [query, setQuery] = useState("");
-  const debouncedQuery = useDebouncedValue(query);
-  const [page, setPage] = useState(1);
-  const [formTarget, setFormTarget] = useState<Company | "new" | null>(null);
-  const [viewTarget, setViewTarget] = useState<Company | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
-  const { show } = useToast();
+function lpa(value: number | null): string {
+  return value == null ? "—" : `₹${value.toFixed(1)} LPA`;
+}
 
-  const { data, isLoading, error } = useCompanies({
-    q: debouncedQuery || undefined,
-    page,
-    page_size: PAGE_SIZE,
-  });
+function dateLabel(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function toFormCompany(row: CompanyReportRow): Company {
+  return {
+    id: row.id,
+    name: row.name,
+    profileInfo: row.profileInfo,
+    createdAt: "",
+    industry: row.industry,
+    location: row.location,
+  };
+}
+
+function CompaniesContent() {
+  const [query, setQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [industry, setIndustry] = useState("All industries");
+  const [status, setStatus] = useState("All statuses");
+  const [sort, setSort] = useState<PlacementTableSort | null>(null);
+  const [page, setPage] = useState(1);
+  const [resetHover, setResetHover] = useState(false);
+  const [formTarget, setFormTarget] = useState<CompanyReportRow | "new" | null>(null);
+  const [viewTarget, setViewTarget] = useState<CompanyReportRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CompanyReportRow | null>(null);
+
+  const { data, isLoading, error } = useCompanyReport();
+  const { show } = useToast();
   const deleteCompany = useDeleteCompany();
 
-  const columns: DataTableColumn<Company>[] = [
-    {
-      key: "name",
-      header: "Company",
-      render: (row) => (
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-700 text-xs font-bold text-white">
-            {initials(row.name)}
-          </span>
-          <p className="font-medium text-slate-900">{row.name}</p>
-        </div>
-      ),
-    },
-    {
-      key: "profileInfo",
-      header: "Profile info",
-      render: (row) => <p className="max-w-md truncate text-slate-600">{row.profileInfo || "—"}</p>,
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "right",
-      render: (row) => (
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setViewTarget(row)}>
-            View
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setFormTarget(row)}>
-            Edit
-          </Button>
-          <Button variant="danger" size="sm" onClick={() => setDeleteTarget(row)}>
-            Delete
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  function resetPage<T>(setter: (v: T) => void) {
+    return (value: T) => {
+      setter(value);
+      setPage(1);
+    };
+  }
 
   function handleDeleteConfirm() {
     if (!deleteTarget) return;
@@ -86,63 +78,211 @@ export default function CompaniesPage() {
         show("Company deleted.", "success");
         setDeleteTarget(null);
       },
-      onError: (err: unknown) => {
-        show(err instanceof ApiError ? err.message : "Something went wrong.", "error");
-      },
+      onError: (err: unknown) => show(err instanceof ApiError ? err.message : "Something went wrong.", "error"),
     });
   }
 
-  return (
-    <div>
-      <PageHeader
-        title="Companies"
-        actions={
-          <Button variant="primary" onClick={() => setFormTarget("new")}>
-            <PlusIcon className="h-4 w-4" /> Add company
-          </Button>
-        }
-      />
+  const rows = useMemo(() => data ?? [], [data]);
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-bold text-slate-900">Registered recruiters</h3>
-          <p className="text-xs text-slate-500">
-            {data ? `${data.data.length} of ${data.total} companies` : "Loading…"}
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((r) => {
+      const matchesQuery = !q || r.name.toLowerCase().includes(q) || (r.profileInfo ?? "").toLowerCase().includes(q);
+      const matchesIndustry = industry === "All industries" || r.industry === industry;
+      const matchesStatus = status === "All statuses" || statusLabel(r.recruiterStatus) === status;
+      return matchesQuery && matchesIndustry && matchesStatus;
+    });
+  }, [rows, query, industry, status]);
+
+  const total = rows.length;
+  const withDrives = rows.filter((r) => r.drivesCount > 0).length;
+  const hiringThisCycle = rows.filter((r) => r.openRoles > 0);
+  const returningHiring = hiringThisCycle.filter((r) => r.recruiterStatus === "returning").length;
+  const newHiring = hiringThisCycle.filter((r) => r.recruiterStatus === "new").length;
+  const offersMade = rows.reduce((a, r) => a + r.hired, 0);
+  const packageSum = rows.reduce((a, r) => a + (r.averagePackageLpa ?? 0) * r.hired, 0);
+  const averagePackage = offersMade > 0 ? packageSum / offersMade : null;
+
+  const columns: PlacementTableColumn<CompanyReportRow>[] = [
+    {
+      key: "name",
+      label: "Company",
+      width: "1.2fr",
+      strong: true,
+      sortValue: (r) => r.name,
+      render: (r) => ({ text: r.name }),
+    },
+    {
+      key: "industry",
+      label: "Industry",
+      width: "1fr",
+      sortValue: (r) => r.industry ?? "",
+      render: (r) => ({ text: r.industry ?? "—" }),
+    },
+    {
+      key: "location",
+      label: "Location",
+      width: ".9fr",
+      sortValue: (r) => r.location ?? "",
+      render: (r) => ({ text: r.location ?? "—" }),
+    },
+    {
+      key: "openRoles",
+      label: "Open roles",
+      width: ".7fr",
+      type: "mono",
+      sortValue: (r) => r.openRoles,
+      render: (r) => ({ text: String(r.openRoles) }),
+    },
+    {
+      key: "hired",
+      label: "Hired",
+      width: ".7fr",
+      type: "mono",
+      sortValue: (r) => r.hired,
+      render: (r) => ({ text: String(r.hired) }),
+    },
+    {
+      key: "average",
+      label: "Average",
+      width: ".9fr",
+      type: "mono",
+      sortValue: (r) => r.averagePackageLpa ?? -1,
+      render: (r) => ({ text: lpa(r.averagePackageLpa) }),
+    },
+    {
+      key: "highest",
+      label: "Highest",
+      width: ".9fr",
+      type: "mono",
+      sortValue: (r) => r.highestPackageLpa ?? -1,
+      render: (r) => ({ text: lpa(r.highestPackageLpa) }),
+    },
+    {
+      key: "lastDrive",
+      label: "Last drive",
+      width: "1fr",
+      sortValue: (r) => r.lastDriveDate ?? "",
+      render: (r) => ({ text: dateLabel(r.lastDriveDate) }),
+    },
+    {
+      key: "status",
+      label: "Status",
+      width: ".8fr",
+      type: "badge",
+      sortValue: (r) => statusLabel(r.recruiterStatus),
+      render: (r) => ({ text: statusLabel(r.recruiterStatus) }),
+    },
+    {
+      key: "actions",
+      label: "",
+      width: "1.2fr",
+      type: "action",
+      align: "right",
+      actions: (r) => [
+        { label: "View", onClick: () => setViewTarget(r) },
+        { label: "Edit", onClick: () => setFormTarget(r) },
+        { label: "Delete", tone: "danger", onClick: () => setDeleteTarget(r) },
+      ],
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <h1 style={{ margin: 0, fontSize: 26, letterSpacing: "-.7px", fontWeight: 680 }}>Companies</h1>
+          <p style={{ margin: "5px 0 0 0", fontSize: 13, color: "#77808f" }}>
+            Recruiter relationships, hiring history and drive participation across {total.toLocaleString()} companies.
           </p>
         </div>
-        <div className="max-w-sm flex-1">
-          <SearchInput
-            placeholder="Search companies"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(1);
-            }}
-          />
+        <div style={{ display: "flex", gap: 9 }}>
+          <button type="button" onClick={() => setFormTarget("new")} style={pageButtonStyle(true)}>
+            Add company
+          </button>
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        rows={data?.data ?? []}
-        rowKey={(row) => row.id}
-        isLoading={isLoading}
-        error={error instanceof ApiError ? error.message : error ? "Failed to load companies." : null}
-        emptyMessage="No companies found."
-        footer={
-          data && (
-            <PaginationBar page={data.page} pageSize={data.page_size} total={data.total} onPageChange={setPage} />
-          )
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(206px,1fr))", gap: 12 }}>
+        <PlacementStatCard
+          label="Companies in directory"
+          value={total.toLocaleString()}
+          caption={`${withDrives} with at least one drive on record`}
+        />
+        <PlacementStatCard
+          label="Hiring this cycle"
+          value={hiringThisCycle.length.toLocaleString()}
+          caption={`${returningHiring} returning, ${newHiring} first-time`}
+        />
+        <PlacementStatCard label="Offers made" value={offersMade.toLocaleString()} caption="Across all recruiters" />
+        <PlacementStatCard label="Average package" value={lpa(averagePackage)} caption="Weighted across all hired students" />
+      </div>
+
+      <PlacementTable
+        toolbar={
+          <>
+            <input
+              value={query}
+              onChange={(e) => resetPage(setQuery)(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Search companies"
+              style={placementSearchInputStyle(searchFocused)}
+            />
+            <select value={industry} onChange={(e) => resetPage(setIndustry)(e.target.value)} style={placementSelectStyle}>
+              {["All industries", ...COMPANY_INDUSTRIES].map((i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
+            </select>
+            <select value={status} onChange={(e) => resetPage(setStatus)(e.target.value)} style={placementSelectStyle}>
+              {["All statuses", "Returning", "New", "Not yet recruited"].map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setIndustry("All industries");
+                setStatus("All statuses");
+                setSort(null);
+                setPage(1);
+              }}
+              onMouseEnter={() => setResetHover(true)}
+              onMouseLeave={() => setResetHover(false)}
+              style={placementResetButtonStyle(resetHover)}
+            >
+              Reset
+            </button>
+          </>
         }
+        columns={columns}
+        rows={filtered}
+        rowKey={(r) => r.id}
+        onRowClick={setViewTarget}
+        sort={sort}
+        onSortChange={resetPage(setSort)}
+        page={page}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+        emptyMessage={isLoading ? "Loading…" : error ? "Failed to load companies." : "No companies match these filters."}
       />
 
       <CompanyFormModal
         open={formTarget !== null}
-        company={formTarget === "new" ? null : formTarget}
+        company={formTarget === "new" || formTarget === null ? null : toFormCompany(formTarget)}
         onClose={() => setFormTarget(null)}
       />
 
-      <CompanyDetailModal open={viewTarget !== null} company={viewTarget} onClose={() => setViewTarget(null)} />
+      <CompanyDetailModal
+        open={viewTarget !== null}
+        company={viewTarget ? toFormCompany(viewTarget) : null}
+        onClose={() => setViewTarget(null)}
+      />
 
       <ConfirmDialog
         open={deleteTarget !== null}
@@ -156,4 +296,8 @@ export default function CompaniesPage() {
       />
     </div>
   );
+}
+
+export default function CompaniesPage() {
+  return <CompaniesContent />;
 }

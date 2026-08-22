@@ -2,64 +2,82 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronsLeftIcon, ChevronsRightIcon, XIcon } from "@/shared/components/icons";
+import { ChevronsLeftIcon, ChevronsRightIcon } from "@/shared/components/icons";
 import { useStudentCount } from "@/modules/students/hooks/useStudentCount";
 import { ADMIN_NAV } from "../nav";
 
 interface AdminSidebarProps {
-  mobileOpen: boolean;
-  onCloseMobile: () => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }
 
-export function AdminSidebar({ mobileOpen, onCloseMobile, collapsed, onToggleCollapsed }: AdminSidebarProps) {
+export function AdminSidebar({ collapsed, onToggleCollapsed }: AdminSidebarProps) {
   const pathname = usePathname();
   // Live roll count, not the static placeholder in nav.ts — a nav badge that
   // disagreed with the page it links to would be the first thing to erode
   // trust in every other number on this dashboard.
   const studentCount = useStudentCount({});
 
-  function renderNav(isCollapsedRail: boolean) {
-    return (
-      <nav className="flex flex-col gap-1 overflow-y-auto px-4 py-4">
+  return (
+    <aside
+      style={{
+        width: collapsed ? 76 : 246,
+        flex: `0 0 ${collapsed ? 76 : 246}px`,
+        background: "#ffffff",
+        color: "#46536a",
+        borderRight: "1px solid #e6eaf1",
+        transition: "flex-basis .18s ease, width .18s ease",
+      }}
+      className="flex h-full flex-col overflow-y-auto"
+    >
+      <nav style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 16 }}>
         {ADMIN_NAV.map((group, groupIndex) => (
-          <div key={group.label} className="mb-3 flex flex-col gap-0.5">
-            <div
-              className={`flex items-center px-3 pb-1.5 pt-2 ${
-                isCollapsedRail ? "justify-center" : "justify-between"
-              }`}
-            >
-              {!isCollapsedRail && (
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                  {group.label}
-                </p>
-              )}
-              {groupIndex === 0 && (
-                <button
-                  type="button"
-                  onClick={onToggleCollapsed}
-                  aria-label={isCollapsedRail ? "Expand navigation" : "Collapse navigation"}
-                  title={isCollapsedRail ? "Expand navigation" : "Collapse navigation"}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                >
-                  {isCollapsedRail ? (
-                    <ChevronsRightIcon className="h-4 w-4" />
-                  ) : (
-                    <ChevronsLeftIcon className="h-4 w-4" />
-                  )}
-                </button>
-              )}
-            </div>
+          <div key={group.label} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            {(!collapsed || groupIndex === 0) && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: collapsed ? "center" : "space-between",
+                  padding: "4px 10px 6px 10px",
+                }}
+              >
+                {!collapsed && (
+                  <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "1.1px", color: "#9aa5b8" }}>
+                    {group.label}
+                  </span>
+                )}
+                {groupIndex === 0 && (
+                  <button
+                    type="button"
+                    onClick={onToggleCollapsed}
+                    aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+                    title={collapsed ? "Expand navigation" : "Collapse navigation"}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      color: "#9aa5b8",
+                      flexShrink: 0,
+                    }}
+                    className="hover:bg-[#f3f6fc] hover:text-[#5b6577]"
+                  >
+                    {collapsed ? (
+                      <ChevronsRightIcon style={{ width: 15, height: 15 }} />
+                    ) : (
+                      <ChevronsLeftIcon style={{ width: 15, height: 15 }} />
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
             {group.items.map((item) => {
               const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
               const Icon = item.icon;
-              const badge =
-                item.href === "/admin/students"
-                  ? studentCount.data !== undefined
-                    ? String(studentCount.data)
-                    : undefined
-                  : item.badge;
+              const badge = item.href === "/admin/students" ? studentCount.data?.toLocaleString("en-IN") : item.badge;
 
               if (item.soon) {
                 return (
@@ -68,15 +86,33 @@ export function AdminSidebar({ mobileOpen, onCloseMobile, collapsed, onToggleCol
                     type="button"
                     disabled
                     title={`${item.label} — module planned`}
-                    className={`flex cursor-not-allowed items-center gap-3 rounded-md px-3 py-2.5 text-left text-[14.5px] font-medium text-slate-400 ${
-                      isCollapsedRail ? "justify-center" : ""
-                    }`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "9px 11px",
+                      borderRadius: 9,
+                      fontSize: 14,
+                      justifyContent: collapsed ? "center" : undefined,
+                      color: "#b7bfcc",
+                      fontWeight: 500,
+                      cursor: "not-allowed",
+                    }}
                   >
-                    <Icon className="h-[18px] w-[18px] shrink-0" />
-                    {!isCollapsedRail && (
+                    <Icon style={{ width: 19, height: 19, flexShrink: 0, opacity: 0.7 }} />
+                    {!collapsed && (
                       <>
-                        <span className="flex-1">{item.label}</span>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10.5px] font-semibold text-slate-500">
+                        <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 650,
+                            padding: "2px 7px",
+                            borderRadius: 20,
+                            background: "#eff2f7",
+                            color: "#9aa5b8",
+                          }}
+                        >
                           Soon
                         </span>
                       </>
@@ -89,18 +125,36 @@ export function AdminSidebar({ mobileOpen, onCloseMobile, collapsed, onToggleCol
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onCloseMobile}
-                  title={isCollapsedRail ? item.label : undefined}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-[14.5px] font-medium transition-colors ${
-                    active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"
-                  } ${isCollapsedRail ? "justify-center" : ""}`}
+                  title={collapsed ? item.label : undefined}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "9px 11px",
+                    borderRadius: 9,
+                    fontSize: 14,
+                    justifyContent: collapsed ? "center" : undefined,
+                    background: active ? "#e8f0fe" : undefined,
+                    color: active ? "#1f4fd8" : "#3f4b60",
+                    fontWeight: active ? 650 : 500,
+                  }}
+                  className="hover:bg-[#f3f6fc]"
                 >
-                  <Icon className="h-[18px] w-[18px] shrink-0" />
-                  {!isCollapsedRail && (
+                  <Icon style={{ width: 19, height: 19, flexShrink: 0, opacity: 0.9 }} />
+                  {!collapsed && (
                     <>
-                      <span className="flex-1">{item.label}</span>
-                      {badge && (
-                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10.5px] font-semibold text-blue-700">
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {badge != null && (
+                        <span
+                          style={{
+                            fontFamily: "var(--font-ibm-plex-mono)",
+                            fontSize: 10.5,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                            background: active ? "#dbe6ff" : "#eff2f7",
+                            color: active ? "#1f4fd8" : "#77808f",
+                          }}
+                        >
                           {badge}
                         </span>
                       )}
@@ -112,40 +166,6 @@ export function AdminSidebar({ mobileOpen, onCloseMobile, collapsed, onToggleCol
           </div>
         ))}
       </nav>
-    );
-  }
-
-  return (
-    <>
-      <aside
-        className={`hidden h-full shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white transition-[width] duration-150 lg:flex ${
-          collapsed ? "w-[68px]" : "w-65"
-        }`}
-      >
-        {renderNav(collapsed)}
-      </aside>
-
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
-          <div
-            className="fixed inset-0 bg-black/30"
-            onClick={onCloseMobile}
-            aria-hidden="true"
-          />
-          <aside className="relative flex h-full w-65 flex-col overflow-y-auto bg-white shadow-xl">
-            <div className="flex items-center justify-end px-4 py-3">
-              <button
-                onClick={onCloseMobile}
-                className="text-slate-400 hover:text-slate-600"
-                aria-label="Close menu"
-              >
-                <XIcon className="h-5 w-5" />
-              </button>
-            </div>
-            {renderNav(false)}
-          </aside>
-        </div>
-      )}
-    </>
+    </aside>
   );
 }
