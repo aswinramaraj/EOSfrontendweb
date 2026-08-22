@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { ApiError } from "@/shared/lib/api-client";
 import { useFacultyById } from "@/modules/faculty/hooks/useFacultyById";
 import { FacultyEditForm } from "@/modules/faculty/components/FacultyEditForm";
+import { HRPageSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 
 export default function HRFacultyEditPage() {
   const params = useParams<{ facultyId: string }>();
@@ -12,7 +13,7 @@ export default function HRFacultyEditPage() {
   const { data: faculty, isLoading, error } = useFacultyById(Number.isFinite(facultyId) ? facultyId : null);
 
   if (isLoading) {
-    return <p className="text-sm text-slate-500">Loading faculty…</p>;
+    return <HRPageSkeleton statCount={0} cardCount={2} cardContentClassName="h-64" blockCount={0} />;
   }
 
   if (error || !faculty) {

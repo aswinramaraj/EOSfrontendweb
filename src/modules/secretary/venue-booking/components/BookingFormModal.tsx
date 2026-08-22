@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/shared/components/ui/Button";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { CalendarIcon, XIcon } from "@/shared/components/icons";
+import { SecretaryCalendarIcon, XIcon } from "@/shared/components/icons";
 import { numberFieldOptions } from "@/shared/lib/rhf-helpers";
 import { useCreateVenueBooking } from "../hooks/useVenueBookings";
 import { bookingFormSchema, type BookingFormValues } from "../schemas/booking-form.schema";
@@ -163,7 +163,7 @@ export function BookingFormModal({
           <div>
             <p className="mb-[7px] text-[14.5px] font-semibold text-slate-900">Selected Date Range</p>
             <div className="flex items-center gap-2.5 rounded-xl bg-blue-50 px-3.5 py-[13px]">
-              <CalendarIcon className="h-4 w-4 text-blue-600" />
+              <SecretaryCalendarIcon className="h-4 w-4 text-blue-600" />
               <span className="text-[15px] font-semibold text-blue-700">{formatDay(from)}</span>
               <span className="text-slate-400">→</span>
               <span className="text-[15px] font-semibold text-blue-700">

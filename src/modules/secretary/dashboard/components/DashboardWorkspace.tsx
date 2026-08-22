@@ -3,11 +3,11 @@
 import type { ComponentType, SVGProps } from "react";
 import {
   BarChartIcon,
-  BriefcaseIcon,
-  CalendarIcon,
   CalendarXIcon,
-  InboxIcon,
   LogInIcon,
+  SecretaryBriefcaseIcon,
+  SecretaryCalendarIcon,
+  SecretaryInboxIcon,
   UserXIcon,
 } from "@/shared/components/icons";
 import { ApiError } from "@/shared/lib/api-client";
@@ -26,7 +26,7 @@ interface Tile {
 function buildTiles(data: SecretaryDashboardSummary): Tile[] {
   return [
     { icon: UserXIcon, value: data.students_today.absent, label: "Students absent", note: "Marked absent across today's classes" },
-    { icon: BriefcaseIcon, value: data.students_today.on_duty, label: "Students on duty", note: "Marked on-duty today" },
+    { icon: SecretaryBriefcaseIcon, value: data.students_today.on_duty, label: "Students on duty", note: "Marked on-duty today" },
     { icon: CalendarXIcon, value: data.faculty_today.on_leave, label: "Faculty on leave", note: "On leave today" },
     { icon: LogInIcon, value: data.faculty_today.on_duty, label: "Faculty on duty", note: "On duty today" },
     {
@@ -36,7 +36,7 @@ function buildTiles(data: SecretaryDashboardSummary): Tile[] {
       note: `${data.attendance_today.marked_sessions} of ${data.attendance_today.scheduled_sessions} sessions logged today`,
     },
     {
-      icon: InboxIcon,
+      icon: SecretaryInboxIcon,
       value: data.pending_requests.total,
       label: "Requests to decide",
       note: "Proposals, venue and media",
@@ -106,7 +106,7 @@ export function DashboardWorkspace() {
 
           <div className="mt-[22px] rounded-2xl border border-[#E3E8EF] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
             <div className="flex items-center gap-[10px] border-b border-[#E3E8EF] px-5 py-4">
-              <CalendarIcon className="h-[17px] w-[17px] text-blue-600" />
+              <SecretaryCalendarIcon className="h-[17px] w-[17px] text-blue-600" />
               <div className="text-[15.5px] font-semibold text-slate-900">Faculty on Leave / On Duty</div>
               <span className="text-[12.5px] text-slate-400">{formatDateLabel(data.date)}</span>
             </div>

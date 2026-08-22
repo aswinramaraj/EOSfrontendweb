@@ -1,4 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
+import { HOVERABLE } from "./ui/hoverable";
 
 interface HRStatCardProps {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
@@ -25,27 +26,29 @@ export function HRStatCard({
   return (
     <Wrapper
       onClick={onClick}
-      className={`relative flex h-full w-full flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 text-left ${
-        onClick ? "cursor-pointer hover:border-blue-200 hover:shadow-sm" : ""
+      className={`flex h-full w-full flex-col rounded-xl border border-slate-200 bg-white p-5 text-left ${HOVERABLE} ${
+        onClick ? "cursor-pointer" : ""
       }`}
     >
-      {cornerDot && <span className="absolute right-4 top-4 h-2 w-2 rounded-full bg-red-500" />}
-      <span className={`flex h-10 w-10 items-center justify-center rounded-full ${iconClassName}`}>
-        <Icon className="h-5 w-5" />
-      </span>
-      <div>
-        <p className="text-[11.5px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{value}</p>
-        {caption && <p className="mt-0.5 text-xs text-slate-500">{caption}</p>}
-        {progressPercent !== undefined && (
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-blue-600"
-              style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
-            />
-          </div>
-        )}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-semibold text-slate-700">{label}</p>
+        <span className="relative shrink-0">
+          {cornerDot && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#2655DA]" />}
+          <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconClassName}`}>
+            <Icon className="h-4 w-4" />
+          </span>
+        </span>
       </div>
+      <p className="mt-3 text-[32px] font-black leading-none tracking-tight text-slate-900">{value}</p>
+      {caption && <p className="mt-2 text-xs text-slate-500">{caption}</p>}
+      {progressPercent !== undefined && (
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-blue-600"
+            style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
+          />
+        </div>
+      )}
     </Wrapper>
   );
 }

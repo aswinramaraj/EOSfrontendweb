@@ -1,24 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { StatusPill, type PillTone } from "@/shared/components/ui/StatusPill";
 import { Button } from "@/shared/components/ui/Button";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { DownloadIcon, PlusIcon } from "@/shared/components/icons";
+import { CheckIcon, DownloadIcon, PlusIcon, RupeeIcon } from "@/shared/components/icons";
 import { fullName } from "@/modules/faculty/lib/faculty-format";
 import { HrPayrollFormModal } from "@/modules/hr/components/HrPayrollFormModal";
 import { useHrPayroll, useMarkHrPayrollPaid } from "@/modules/hr/hooks/useHrPayroll";
 import { useHrDashboard } from "@/modules/hr/hooks/useHrDashboard";
+import { useHRPeriod, MONTH_LABELS } from "@/modules/hr/components/HRPeriodContext";
+import { buildFacultyDepartmentLookup, exportPayrollReportPdf } from "@/modules/hr/lib/hr-report-pdfs";
+import { facultyService } from "@/modules/faculty/services/faculty.service";
+import { fetchAllPages } from "@/modules/faculty/lib/report-export";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRStatCard } from "@/modules/hr/components/HRStatCard";
+import { HRSegmentedTabs } from "@/modules/hr/components/ui/HRSegmentedTabs";
+import { HRFilterBar } from "@/modules/hr/components/ui/HRFilterBar";
+import { HRStackedRowsSkeleton, HRStatGridSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 
-const ALL = "all";
 type PaidFilter = "all" | "paid" | "pending";
 
 const STATUS_LABEL: Record<Exclude<PaidFilter, "all">, string> = {
-  paid: "Paid",
+  paid: "Verified",
   pending: "Pending",
 };
 
@@ -26,14 +32,6 @@ const STATUS_TONE: Record<Exclude<PaidFilter, "all">, PillTone> = {
   paid: "green",
   pending: "amber",
 };
-
-const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => {
-  const date = new Date();
-  date.setMonth(date.getMonth() - i);
-  const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-  const label = date.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
-  return { value, label };
-});
 
 function formatRupees(amount: number): string {
   return `₹${amount.toLocaleString("en-IN")}`;
@@ -45,12 +43,13 @@ function formatDate(dateString: string): string {
 
 export default function HRPayrollPage() {
   const { show } = useToast();
+  const { month, year, setMonth, setYear, monthKey } = useHRPeriod();
   const [search, setSearch] = useState("");
-  const [month, setMonth] = useState(MONTH_OPTIONS[0].value);
-  const [paidFilter, setPaidFilter] = useState<PaidFilter>(ALL);
+  const [paidFilter, setPaidFilter] = useState<PaidFilter>("all");
   const [formOpen, setFormOpen] = useState(false);
+  const [exportPending, setExportPending] = useState(false);
 
-  const { data, isLoading, error } = useHrPayroll({ month, limit: 100 });
+  const { data, isLoading, error } = useHrPayroll({ month: monthKey, limit: 100 });
   const { data: dashboard } = useHrDashboard();
   const markPaid = useMarkHrPayrollPaid();
 
@@ -60,16 +59,14 @@ export default function HRPayrollPage() {
     () => ({
       total: records.length,
       paid: records.filter((r) => r.paid_at !== null).length,
-      // "Pending" only covers records that already exist and aren't marked
-      // paid — it says nothing about faculty who don't have a record for
-      // this month at all, which reads as "0 left to do" when there could
-      // still be plenty of people not yet added. notAdded below covers that.
       pending: records.filter((r) => r.paid_at === null).length,
       notAdded: Math.max(0, (dashboard?.payroll.total_active_faculty ?? 0) - records.length),
+      totalGross: records.reduce((sum, r) => sum + r.gross_amount, 0),
       totalNet: records.reduce((sum, r) => sum + r.net_amount, 0),
     }),
     [records, dashboard],
   );
+  const verifiedPercent = counts.total ? Math.round((counts.paid / counts.total) * 100) : 0;
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -94,16 +91,39 @@ export default function HRPayrollPage() {
     );
   }
 
+  function resetFilters() {
+    setSearch("");
+    setPaidFilter("all");
+  }
+
+  async function handleExportRegister() {
+    if (filtered.length === 0) {
+      show("No payroll records to export for this month.", "info");
+      return;
+    }
+    setExportPending(true);
+    try {
+      const { rows: allFaculty } = await fetchAllPages((page, limit) => facultyService.list({ page, limit }));
+      const deptLookup = buildFacultyDepartmentLookup(allFaculty);
+      await exportPayrollReportPdf(filtered, deptLookup, { month: `${MONTH_LABELS[month - 1]} ${year}` });
+      show("Payroll register exported.", "success");
+    } catch (err) {
+      show(err instanceof ApiError ? err.message : "Couldn't generate the register.", "error");
+    } finally {
+      setExportPending(false);
+    }
+  }
+
   return (
     <div>
-      <PageHeader
-        title="Payroll"
-        description="Review and record faculty payroll."
+      <HRPageHeader
+        title={`Payroll Run — ${MONTH_LABELS[month - 1]} ${year}`}
+        description="Department-wise salary run — verify, apply deductions and release for faculty."
         actions={
           <>
-            <Button variant="secondary" onClick={() => show("Export is coming soon.", "info")}>
+            <Button variant="secondary" isPending={exportPending} onClick={handleExportRegister}>
               <DownloadIcon className="h-4 w-4" />
-              Export
+              Download register
             </Button>
             <Button variant="primary" onClick={() => setFormOpen(true)}>
               <PlusIcon className="h-4 w-4" />
@@ -119,65 +139,69 @@ export default function HRPayrollPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-500">Total Records</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{counts.total}</p>
+      {isLoading ? (
+        <div className="mb-5">
+          <HRStatGridSkeleton count={4} />
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-500">Paid</p>
-          <p className="mt-2 text-2xl font-bold text-green-700">{counts.paid}</p>
+      ) : (
+        <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <HRStatCard icon={RupeeIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Gross payable" value={formatRupees(counts.totalGross)} />
+          <HRStatCard icon={RupeeIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Deductions" value={formatRupees(counts.totalGross - counts.totalNet)} />
+          <HRStatCard icon={RupeeIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Net payable" value={formatRupees(counts.totalNet)} caption={`${counts.total} employees`} />
+          <HRStatCard icon={CheckIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Verified" value={`${verifiedPercent}%`} caption={`${counts.paid} of ${counts.total} payslips`} />
         </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-500">Pending</p>
-          <p className="mt-2 text-2xl font-bold text-amber-600">{counts.pending}</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-500">Not Yet Added</p>
-          <p className={`mt-2 text-2xl font-bold ${counts.notAdded > 0 ? "text-red-600" : "text-slate-900"}`}>
-            {counts.notAdded}
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-6">
-          <p className="text-sm text-slate-500">Total Net Payable</p>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{formatRupees(counts.totalNet)}</p>
-        </div>
-      </div>
+      )}
 
-      <div className="mt-6 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <SearchInput
-            placeholder="Search by name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <SelectInput className="sm:w-44" value={month} onChange={(e) => setMonth(e.target.value)}>
-          {MONTH_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </SelectInput>
-        <SelectInput
-          className="sm:w-40"
+      <div className="mb-5">
+        <HRSegmentedTabs
           value={paidFilter}
-          onChange={(e) => setPaidFilter(e.target.value as PaidFilter)}
-        >
-          <option value={ALL}>All Statuses</option>
-          <option value="paid">Paid</option>
-          <option value="pending">Pending</option>
-        </SelectInput>
+          onChange={setPaidFilter}
+          options={[
+            { value: "all", label: "All", count: counts.total },
+            { value: "paid", label: "Verified", count: counts.paid },
+            { value: "pending", label: "Pending", count: counts.pending },
+          ]}
+        />
       </div>
 
-      <div className="mt-6 flex flex-col gap-4">
-        {isLoading && <p className="py-10 text-center text-sm text-slate-500">Loading…</p>}
+      <HRFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search department…"
+        onReset={resetFilters}
+        resultCount={{ showing: filtered.length, total: records.length, noun: "records" }}
+        filters={
+          <SelectInput
+            className="w-auto"
+            value={monthKey}
+            onChange={(e) => {
+              const [y, m] = e.target.value.split("-").map(Number);
+              setYear(y);
+              setMonth(m);
+            }}
+          >
+            {Array.from({ length: 12 }, (_, i) => {
+              const date = new Date();
+              date.setMonth(date.getMonth() - i);
+              const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+              return (
+                <option key={value} value={value}>
+                  {date.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+                </option>
+              );
+            })}
+          </SelectInput>
+        }
+      />
 
+      {isLoading && <HRStackedRowsSkeleton rows={5} />}
+
+      <div className="flex flex-col gap-4">
         {!isLoading &&
           filtered.map((record) => {
             const status: Exclude<PaidFilter, "all"> = record.paid_at !== null ? "paid" : "pending";
             return (
-              <div key={record.id} className="rounded-lg border border-slate-200 bg-white p-4">
+              <div key={record.id} className="rounded-xl border border-slate-200 bg-white p-4">
                 <div className="grid grid-cols-[minmax(0,1fr)_112px_112px_96px_144px] items-center gap-4">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-slate-900">
@@ -216,11 +240,13 @@ export default function HRPayrollPage() {
           })}
 
         {!isLoading && filtered.length === 0 && (
-          <p className="rounded-lg border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
+          <p className="rounded-xl border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
             No payroll entries match these filters.
           </p>
         )}
       </div>
+
+      <p className="mt-5 text-xs text-slate-400">Bank advice must be uploaded before release · locked runs cannot be edited.</p>
 
       <HrPayrollFormModal open={formOpen} onClose={() => setFormOpen(false)} />
     </div>

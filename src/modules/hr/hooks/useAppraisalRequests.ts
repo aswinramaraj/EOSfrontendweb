@@ -11,6 +11,14 @@ export function useAppraisalRequests(params: AppraisalRequestsListParams = {}) {
   });
 }
 
+export function useAppraisalRequestById(id: number | null) {
+  return useQuery({
+    queryKey: hrKeys.appraisalRequests.detail(id ?? -1),
+    queryFn: () => appraisalRequestsService.get(id as number),
+    enabled: id != null,
+  });
+}
+
 function useInvalidateAppraisalRequests() {
   const queryClient = useQueryClient();
   return () => {

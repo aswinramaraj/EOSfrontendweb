@@ -1,11 +1,11 @@
 import type { ComponentType, SVGProps } from "react";
 import {
   BarChartIcon,
-  BriefcaseIcon,
-  CalendarIcon,
   DashboardIcon,
   ImageIcon,
-  MapPinIcon,
+  SecretaryBriefcaseIcon,
+  SecretaryCalendarIcon,
+  SecretaryMapPinIcon,
 } from "@/shared/components/icons";
 
 export interface SecretaryNavItem {
@@ -27,11 +27,11 @@ export const SECRETARY_NAV: SecretaryNavGroup[] = [
   {
     label: "Modules",
     items: [
-      { href: "/secretary/attendance", label: "Attendance", icon: CalendarIcon },
-      { href: "/secretary/proposals", label: "Proposals", icon: BriefcaseIcon },
-      { href: "/secretary/venue-booking", label: "Venue Booking", icon: MapPinIcon },
+      { href: "/secretary/attendance", label: "Attendance", icon: SecretaryCalendarIcon },
+      { href: "/secretary/proposals", label: "Proposals", icon: SecretaryBriefcaseIcon },
+      { href: "/secretary/venue-booking", label: "Venue Booking", icon: SecretaryMapPinIcon },
       { href: "/secretary/media-request", label: "Media Request", icon: ImageIcon },
-      { href: "/secretary/timetable", label: "Timetable", icon: CalendarIcon },
+      { href: "/secretary/timetable", label: "Timetable", icon: SecretaryCalendarIcon },
     ],
   },
   {

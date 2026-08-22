@@ -3,17 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { DataTable } from "@/shared/components/ui/DataTable";
 import { StatusPill, type PillTone } from "@/shared/components/ui/StatusPill";
+import { Button } from "@/shared/components/ui/Button";
 import { ApiError } from "@/shared/lib/api-client";
 import { ChevronLeftIcon } from "@/shared/components/icons";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
 import { useDepartments } from "@/modules/departments/hooks/useDepartments";
 import { useFacultyAttendanceOverview } from "@/modules/faculty/hooks/useFacultyAttendanceOverview";
 import { FacultyAvatar } from "@/modules/faculty/components/FacultyAvatar";
 import { fullName } from "@/modules/faculty/lib/faculty-format";
 import { PercentStatTile } from "@/modules/hr/components/PercentStatTile";
+import { HRStatGridSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
 import type { FacultyAttendanceOverviewRow } from "@/modules/faculty/types";
 
 function attendanceTone(percent: number): PillTone {
@@ -39,16 +41,15 @@ export default function HRFacultyAttendanceDepartmentPage() {
 
   return (
     <div>
-      <PageHeader
+      <HRPageHeader
         title={department ? department.name : "Department"}
         description={department ? `Attendance for faculty in ${department.name}.` : undefined}
         actions={
-          <Link
-            href="/hr/faculty-attendance"
-            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            All Departments
+          <Link href="/hr/faculty-attendance">
+            <Button variant="secondary">
+              <ChevronLeftIcon className="h-4 w-4" />
+              All Departments
+            </Button>
           </Link>
         }
       />
@@ -57,6 +58,12 @@ export default function HRFacultyAttendanceDepartmentPage() {
         <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error instanceof ApiError ? error.message : "Failed to load attendance."}
         </p>
+      )}
+
+      {!data && isLoading && (
+        <div className="mb-5">
+          <HRStatGridSkeleton count={7} />
+        </div>
       )}
 
       {data && (
@@ -108,7 +115,7 @@ export default function HRFacultyAttendanceDepartmentPage() {
         </div>
       )}
 
-      <div className="mb-5 rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
         <SearchInput placeholder="Search faculty..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 

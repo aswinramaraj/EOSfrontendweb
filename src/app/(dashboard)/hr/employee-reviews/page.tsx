@@ -1,18 +1,24 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
-import { SearchInput } from "@/shared/components/ui/SearchInput";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { StatusPill, type PillTone } from "@/shared/components/ui/StatusPill";
+import { Button } from "@/shared/components/ui/Button";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
 import { ChevronRightIcon, DownloadIcon } from "@/shared/components/icons";
 import { fullName } from "@/modules/faculty/lib/faculty-format";
 import { CircularScore } from "@/modules/hr/components/CircularScore";
-import { AppraisalRequestDetailDrawer } from "@/modules/hr/components/AppraisalRequestDetailDrawer";
 import { useAppraisalRequests } from "@/modules/hr/hooks/useAppraisalRequests";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRSegmentedTabs } from "@/modules/hr/components/ui/HRSegmentedTabs";
+import { HRFilterBar } from "@/modules/hr/components/ui/HRFilterBar";
+import { HOVERABLE } from "@/modules/hr/components/ui/hoverable";
+import { buildFacultyDepartmentLookup, exportAppraisalReportPdf } from "@/modules/hr/lib/hr-report-pdfs";
+import { HRScoreCardsSkeleton } from "@/modules/hr/components/ui/HRSkeleton";
+import { facultyService } from "@/modules/faculty/services/faculty.service";
+import { fetchAllPages } from "@/modules/faculty/lib/report-export";
 import type { AppraisalRequest, AppraisalRequestStatus } from "@/modules/hr/types/api";
 
 const ALL = "all";
@@ -61,13 +67,14 @@ export default function HREmployeeReviewsPage() {
 
 function HREmployeeReviewsPageContent() {
   const { show } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const requestedTab = searchParams.get("status");
   const initialTab: Tab = VALID_TABS.includes(requestedTab as Tab) ? (requestedTab as Tab) : "all";
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [search, setSearch] = useState("");
   const [academicYear, setAcademicYear] = useState(ALL);
-  const [selectedRequest, setSelectedRequest] = useState<AppraisalRequest | null>(null);
+  const [exportPending, setExportPending] = useState(false);
 
   const { data, isLoading, error } = useAppraisalRequests({
     academic_year: academicYear !== ALL ? academicYear : undefined,
@@ -101,19 +108,42 @@ function HREmployeeReviewsPageContent() {
     });
   }, [allRequests, activeTab, search]);
 
+  function resetFilters() {
+    setSearch("");
+    setAcademicYear(ALL);
+    setActiveTab("all");
+  }
+
+  async function handleExportAll() {
+    if (filtered.length === 0) {
+      show("No reviews to export for these filters.", "info");
+      return;
+    }
+    setExportPending(true);
+    try {
+      const { rows: allFaculty } = await fetchAllPages((page, limit) => facultyService.list({ page, limit }));
+      const deptLookup = buildFacultyDepartmentLookup(allFaculty);
+      await exportAppraisalReportPdf(filtered, deptLookup, {
+        department: undefined,
+      });
+      show("Reviews exported.", "success");
+    } catch (err) {
+      show(err instanceof ApiError ? err.message : "Couldn't generate the export.", "error");
+    } finally {
+      setExportPending(false);
+    }
+  }
+
   return (
     <div>
-      <PageHeader
+      <HRPageHeader
         title="Employee Reviews"
         description="Review and finalize faculty appraisal submissions."
         actions={
-          <button
-            onClick={() => show("Exporting all reviews is coming soon.", "info")}
-            className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
+          <Button variant="secondary" isPending={exportPending} onClick={handleExportAll}>
             <DownloadIcon className="h-4 w-4" />
             Export All
-          </button>
+          </Button>
         }
       />
 
@@ -123,16 +153,22 @@ function HREmployeeReviewsPageContent() {
         </p>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reviews</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <SearchInput
-            placeholder="Search faculty..."
-            className="w-56"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <SelectInput className="w-36" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
+      <div className="mb-5">
+        <HRSegmentedTabs
+          value={activeTab}
+          onChange={setActiveTab}
+          options={tabs.map((t) => ({ value: t.key, label: t.label, count: t.count }))}
+        />
+      </div>
+
+      <HRFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search faculty…"
+        onReset={resetFilters}
+        resultCount={{ showing: filtered.length, total: allRequests.length, noun: "records" }}
+        filters={
+          <SelectInput className="w-auto" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
             <option value={ALL}>All Years</option>
             {ACADEMIC_YEAR_OPTIONS.map((year) => (
               <option key={year} value={year}>
@@ -140,38 +176,21 @@ function HREmployeeReviewsPageContent() {
               </option>
             ))}
           </SelectInput>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="mb-5 inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === tab.key ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-800"
-            }`}
-          >
-            {tab.label}
-            <span
-              className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${
-                activeTab === tab.key ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
-              }`}
-            >
-              {tab.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {isLoading && <p className="py-10 text-center text-sm text-slate-500">Loading…</p>}
+      {isLoading && <HRScoreCardsSkeleton count={6} />}
 
       {!isLoading && (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((request) => {
             const { totalMax, totalScore, hasScores, completionPercent } = reviewScore(request);
             return (
-              <div key={request.id} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5">
+              <button
+                key={request.id}
+                onClick={() => router.push(`/hr/employee-reviews/${request.id}`)}
+                className={`flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left ${HOVERABLE}`}
+              >
                 <div className="flex items-center gap-4">
                   {hasScores ? (
                     <CircularScore score={totalScore} maxScore={totalMax || 1} />
@@ -191,14 +210,11 @@ function HREmployeeReviewsPageContent() {
                   <span className="text-sm text-slate-500">Completion: {completionPercent}%</span>
                 </div>
 
-                <button
-                  onClick={() => setSelectedRequest(request)}
-                  className="flex items-center gap-1 border-t border-slate-100 pt-3 text-sm font-medium text-blue-700 hover:text-blue-800"
-                >
+                <span className="flex items-center gap-1 border-t border-slate-100 pt-3 text-sm font-medium text-blue-700">
                   Review Application
                   <ChevronRightIcon className="h-4 w-4" />
-                </button>
-              </div>
+                </span>
+              </button>
             );
           })}
 
@@ -207,8 +223,6 @@ function HREmployeeReviewsPageContent() {
           )}
         </div>
       )}
-
-      <AppraisalRequestDetailDrawer request={selectedRequest} onClose={() => setSelectedRequest(null)} />
     </div>
   );
 }

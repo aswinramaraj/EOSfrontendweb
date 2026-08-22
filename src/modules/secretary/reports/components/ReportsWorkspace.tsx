@@ -5,7 +5,7 @@ import { Button } from "@/shared/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/shared/components/ui/DataTable";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { BellIcon, CalendarIcon, CheckIcon, DownloadIcon, FileTextIcon } from "@/shared/components/icons";
+import { CheckIcon, DownloadIcon, FileTextIcon, SecretaryBellIcon, SecretaryCalendarIcon } from "@/shared/components/icons";
 import { useReportPreview } from "../hooks/useReportPreview";
 import { useReportDownload } from "../hooks/useReportDownload";
 import { useReportsSummary } from "../hooks/useReportsSummary";
@@ -66,13 +66,13 @@ export function ReportsWorkspace() {
           title="Notifications"
           type="button"
         >
-          <BellIcon className="h-[18px] w-[18px]" />
+          <SecretaryBellIcon className="h-[18px] w-[18px]" />
         </button>
       </div>
 
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[#E3E8EF] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.04)]">
         <span className="flex items-center gap-[10px] rounded-[14px] border border-[#E3E8EF] px-4 py-[10px] text-[15px] font-semibold text-slate-900">
-          <CalendarIcon className="h-[17px] w-[17px] text-blue-600" />
+          <SecretaryCalendarIcon className="h-[17px] w-[17px] text-blue-600" />
           {TODAY_LABEL}
         </span>
         {pills.map((p) => (

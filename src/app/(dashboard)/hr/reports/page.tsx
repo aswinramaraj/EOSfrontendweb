@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PageHeader } from "@/shared/components/ui/PageHeader";
 import { SelectInput } from "@/shared/components/ui/SelectInput";
 import { Button } from "@/shared/components/ui/Button";
 import { useToast } from "@/shared/components/ui/ToastProvider";
@@ -39,6 +38,9 @@ import {
   exportHrRequestsPdf,
   exportPayrollReportPdf,
 } from "@/modules/hr/lib/hr-report-pdfs";
+import { HRPageHeader } from "@/modules/hr/components/ui/HRPageHeader";
+import { HRStatCard } from "@/modules/hr/components/HRStatCard";
+import { HOVERABLE } from "@/modules/hr/components/ui/hoverable";
 
 const ALL = "all";
 
@@ -237,10 +239,21 @@ export default function HRReportsPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Reports"
-        description="Generate operational reports across employees, attendance, leave, appraisal, and payroll."
+      <HRPageHeader
+        title="Reports & Analytics"
+        description="Statutory, management and audit reports generated from live HR data."
       />
+
+      <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <HRStatCard icon={FolderIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Reports Available" value={reports.length} caption="Across HR data" />
+        <HRStatCard
+          icon={DownloadIcon}
+          iconClassName="bg-[#EEF2FF] text-[#2655DA]"
+          label="Generated This Month"
+          value={history.filter((h) => new Date(h.generatedAt).getMonth() === new Date().getMonth()).length}
+        />
+        <HRStatCard icon={ClockIcon} iconClassName="bg-[#EEF2FF] text-[#2655DA]" label="Last Export" value={history[0] ? formatRelativeTime(history[0].generatedAt) : "—"} />
+      </div>
 
       <div className="mb-5 flex items-center gap-2">
         <label htmlFor="reports-department" className="text-sm font-medium text-slate-600">
@@ -263,12 +276,12 @@ export default function HRReportsPage() {
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {reports.map((report) => (
-          <div key={report.key} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5">
+          <div key={report.key} className={`flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 ${HOVERABLE}`}>
             <div className="flex items-start justify-between">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700">
                 <report.icon className="h-5 w-5" />
               </span>
-              {report.count != null && <span className="text-2xl font-bold text-slate-900">{report.count}</span>}
+              {report.count != null && <span className="text-[26px] font-black text-slate-900">{report.count}</span>}
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">{report.title}</p>
@@ -288,7 +301,7 @@ export default function HRReportsPage() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="text-sm font-bold text-slate-900">Recent Exports</h3>
         {history.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">Nothing exported yet this session.</p>

@@ -50,3 +50,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Scoped to the HR module's own shell (see HRShell.tsx) — a slim, light-gray
+ * scrollbar instead of the browser default, without touching scroll
+ * behavior anywhere else in the app. */
+.hr-shell * {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.hr-shell *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.hr-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hr-shell *::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+.hr-shell *::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}

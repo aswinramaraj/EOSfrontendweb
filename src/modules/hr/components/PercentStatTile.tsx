@@ -1,3 +1,5 @@
+import { HOVERABLE } from "./ui/hoverable";
+
 interface PercentStatTileProps {
   label: string;
   percent: number;
@@ -14,9 +16,9 @@ interface PercentStatTileProps {
 export function PercentStatTile({ label, percent, subtitle }: PercentStatTileProps) {
   const clamped = Math.min(100, Math.max(0, percent));
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{percent.toFixed(1)}%</p>
+    <div className={`rounded-xl border border-slate-200 bg-white p-5 ${HOVERABLE}`}>
+      <p className="text-sm font-semibold text-slate-700">{label}</p>
+      <p className="mt-1 text-[26px] font-black tracking-tight text-slate-900">{percent.toFixed(1)}%</p>
       <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
         <div className="h-full rounded-full bg-blue-600" style={{ width: `${clamped}%` }} />

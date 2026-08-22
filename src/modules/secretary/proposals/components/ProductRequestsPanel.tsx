@@ -9,7 +9,7 @@ import { NumberInput } from "@/shared/components/ui/NumberInput";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 import { ApiError } from "@/shared/lib/api-client";
-import { BellIcon, FileTextIcon, HistoryIcon, PlusIcon, TrashIcon } from "@/shared/components/icons";
+import { FileTextIcon, HistoryIcon, PlusIcon, SecretaryBellIcon, TrashIcon } from "@/shared/components/icons";
 import { numberFieldOptions } from "@/shared/lib/rhf-helpers";
 import { SecretaryField } from "@/modules/secretary/components/SecretaryField";
 import { ItemNameSelect } from "@/modules/secretary/components/ItemNameSelect";
@@ -223,7 +223,7 @@ export function ProductRequestsPanel() {
           title="Notifications"
           type="button"
         >
-          <BellIcon className="h-[18px] w-[18px]" />
+          <SecretaryBellIcon className="h-[18px] w-[18px]" />
         </button>
       </div>
 
