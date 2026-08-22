@@ -2,20 +2,33 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { LogOutIcon, ShieldCheckIcon } from "@/shared/components/icons";
+import { CogIcon, LogOutIcon, ShieldCheckIcon } from "@/shared/components/icons";
 import { ConfirmDialog } from "@/shared/components/ui/ConfirmDialog";
 import type { AuthUser } from "@/modules/auth/types";
+import { useAcademicYear } from "../context/AcademicYearContext";
 
-interface AdminTopbarProps {
+interface AcademicCoordinatorTopbarProps {
   user: AuthUser;
   onLogout: () => void;
 }
 
-function roleLabel(role: string): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
+/** June-cutoff semester label — same convention used across the ERP's other modules. Purely informational, not a real switchable setting. */
+function currentSemesterLabel(): string {
+  const month = new Date().getMonth() + 1;
+  const isOdd = month >= 6 && month <= 11;
+  return isOdd ? "Odd Semester" : "Even Semester";
 }
 
-export function AdminTopbar({ user, onLogout }: AdminTopbarProps) {
+const ICON_BTN_STYLE: React.CSSProperties = {
+  width: 44,
+  height: 44,
+  border: "1px solid #e6eaf1",
+  borderRadius: 12,
+};
+
+export function AcademicCoordinatorTopbar({ user, onLogout }: AcademicCoordinatorTopbarProps) {
+  const semester = currentSemesterLabel();
+  const { batchId, setBatchId, batches } = useAcademicYear();
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [confirmingLogout, setConfirmingLogout] = useState(false);
   const roleMenuRef = useRef<HTMLDivElement>(null);
@@ -48,16 +61,20 @@ export function AdminTopbar({ user, onLogout }: AdminTopbarProps) {
         </div>
       </div>
 
+      <div style={{ marginLeft: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 650, color: "#16224a" }}>Academic Coordinator Portal</div>
+      </div>
+
       <div className="relative ml-auto flex-none" ref={roleMenuRef}>
         <button
           onClick={() => setRoleMenuOpen((o) => !o)}
           style={{ display: "flex", alignItems: "center", gap: 8, height: 44, borderRadius: 22, background: "#e8f0fe", padding: "0 14px" }}
         >
           <ShieldCheckIcon style={{ width: 18, height: 18, color: "#1f4fd8" }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#1f4fd8" }}>{roleLabel(user.role)}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#1f4fd8" }}>Academic Coordinator</span>
         </button>
         {roleMenuOpen && (
-          <div className="absolute right-0 top-[calc(100%+6px)] w-52 overflow-hidden rounded-[10px] border border-[#dfe4ec] bg-white py-1 shadow-[0_20px_44px_rgba(16,24,40,.14)]">
+          <div className="absolute right-0 top-[calc(100%+6px)] w-44 overflow-hidden rounded-[10px] border border-[#dfe4ec] bg-white py-1 shadow-[0_20px_44px_rgba(16,24,40,.14)]">
             <p className="truncate px-3.5 py-2 text-xs text-[#8b95a6]">{user.email}</p>
             <button
               onClick={() => {
@@ -72,10 +89,45 @@ export function AdminTopbar({ user, onLogout }: AdminTopbarProps) {
         )}
       </div>
 
+      <select
+        value={batchId ?? ""}
+        onChange={(e) => setBatchId(Number(e.target.value))}
+        title="Batch — scopes every page to this cohort"
+        style={{
+          flex: "0 1 auto",
+          minWidth: 0,
+          height: 44,
+          border: "1px solid #e6eaf1",
+          borderRadius: 12,
+          background: "#fff",
+          fontSize: 14,
+          padding: "0 12px",
+          color: "#16224a",
+          fontWeight: 550,
+        }}
+      >
+        {batches.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.start_year}-{b.end_year}
+          </option>
+        ))}
+      </select>
+
+      <span
+        style={{ flex: "0 1 auto", minWidth: 0, whiteSpace: "nowrap", height: 44, borderRadius: 12, background: "#1a3fa8", color: "#fff", fontSize: 14, fontWeight: 650, padding: "0 16px" }}
+        className="flex items-center"
+      >
+        {semester}
+      </span>
+
+      <button type="button" title="Settings — coming soon" style={ICON_BTN_STYLE} className="flex flex-none items-center justify-center hover:bg-[#f3f6fb]">
+        <CogIcon style={{ width: 19, height: 19, color: "#46536a" }} />
+      </button>
+
       <ConfirmDialog
         open={confirmingLogout}
         title="Sign out?"
-        message="You'll need to log in again to access the Admin Console."
+        message="You'll need to log in again to access the Academic Coordinator portal."
         confirmLabel="Sign out"
         tone="danger"
         onConfirm={onLogout}

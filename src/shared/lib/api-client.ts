@@ -6,6 +6,8 @@ export class ApiError extends Error {
     message: string,
     public readonly statusCode: number,
     public readonly errorCode: string,
+    /** Structured blocker payload some endpoints attach to a 409, e.g. { courses: 1, classes: 5 } — undefined when the backend didn't send one. */
+    public readonly details?: Record<string, number>,
   ) {
     super(message);
     this.name = "ApiError";
@@ -23,6 +25,7 @@ interface ApiErrorEnvelope {
   statusCode: number;
   errorCode: string;
   message: string | string[];
+  details?: Record<string, number>;
 }
 
 async function throwApiError(res: Response): Promise<never> {
@@ -31,7 +34,7 @@ async function throwApiError(res: Response): Promise<never> {
   const message = Array.isArray(err?.message)
     ? err.message.join(", ")
     : (err?.message ?? "Something went wrong. Please try again.");
-  throw new ApiError(message, res.status, err?.errorCode ?? "UNKNOWN_ERROR");
+  throw new ApiError(message, res.status, err?.errorCode ?? "UNKNOWN_ERROR", err?.details);
 }
 
 async function request<T>(

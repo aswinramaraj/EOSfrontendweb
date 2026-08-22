@@ -13,6 +13,9 @@ export interface PlacementRowAction {
   label: string;
   tone?: "primary" | "danger";
   onClick: () => void;
+  disabled?: boolean;
+  /** Tooltip — most useful paired with `disabled` to explain why an action isn't available yet. */
+  title?: string;
 }
 
 export interface PlacementTableColumn<T> {
@@ -28,6 +31,8 @@ export interface PlacementTableColumn<T> {
   actions?: (row: T) => PlacementRowAction[];
   /** Required when type is "bar" (0-100); ignored otherwise. */
   barValue?: (row: T) => number;
+  /** Small fixed-size element (e.g. an avatar) rendered before the cell's text — ignored for "badge"/"bar"/"action" types. */
+  leading?: (row: T) => ReactNode;
   render?: (row: T) => PlacementTableCell;
   sortValue?: (row: T) => string | number;
 }
@@ -50,6 +55,14 @@ interface PlacementTableProps<T> {
   pageSize: number;
   onPageChange: (page: number) => void;
   emptyMessage?: string;
+  /**
+   * Set when `rows` is already just the current server-paginated page (not
+   * the full filtered set) — e.g. a backend that caps page size. Switches
+   * the footer's page count/"Showing X–Y of Z" off `rows.length` and onto
+   * this instead, and skips the client-side re-slice since `rows` is
+   * already the slice to render.
+   */
+  totalCount?: number;
 }
 
 /** Exact color pairs transcribed from Placement Module v2.dc.html's `BADGE` map — falls back to the same neutral slate tone the source uses for any value it doesn't recognize. */
@@ -77,6 +90,19 @@ const BADGE_COLORS: Record<string, [string, string]> = {
   Cancelled: ["#eef1f6", "#16224a"],
   Scheduled: ["#eaf0fe", "#1f4fd8"],
   "In progress": ["#eef3fe", "#5b7fdf"],
+  Active: ["#e6f4ea", "#1e7e34"],
+  Hosteller: ["#e8f0fe", "#1f4fd8"],
+  Complete: ["#dcfce7", "#166534"],
+  Partial: ["#fef08a", "#854d0e"],
+  "Not Started": ["#f1f5f9", "#64748b"],
+  Adequate: ["#dcfce7", "#166534"],
+  Shortage: ["#fecaca", "#991b1b"],
+  "Top performer": ["#dcfce7", "#166534"],
+  "At risk": ["#fecaca", "#991b1b"],
+  "On track": ["#dbeafe", "#1e40af"],
+  "No results yet": ["#f1f5f9", "#64748b"],
+  Draft: ["#f1f3f7", "#5b6577"],
+  Published: ["#dcfce7", "#166534"],
 };
 
 export function placementBadgeStyle(value: string): CSSProperties {
@@ -148,7 +174,7 @@ export function placementResetButtonStyle(hover: boolean): CSSProperties {
 }
 
 /** Exact small-button style transcribed from Placement Module v2.dc.html's `smallBtn()` helper — the source has no distinct "danger" tone, so this adds one consistent with the rest of the app's destructive-action red for the Edit/Delete actions this table needs but the reference doesn't render. */
-function rowActionButtonStyle(tone: PlacementRowAction["tone"]): CSSProperties {
+function rowActionButtonStyle(tone: PlacementRowAction["tone"], disabled?: boolean): CSSProperties {
   const base: CSSProperties = {
     height: 29,
     borderRadius: 6,
@@ -156,8 +182,9 @@ function rowActionButtonStyle(tone: PlacementRowAction["tone"]): CSSProperties {
     fontSize: 11.5,
     fontWeight: 600,
     whiteSpace: "nowrap",
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
   };
+  if (disabled) return { ...base, border: "1px solid #eef1f6", background: "#fff", color: "#c3cad4" };
   if (tone === "primary") return { ...base, border: "1px solid #1f4fd8", background: "#1f4fd8", color: "#fff" };
   if (tone === "danger") return { ...base, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c" };
   return { ...base, border: "1px solid #dfe4ec", background: "#fff", color: "#2c3542" };
@@ -208,11 +235,13 @@ function TableRow<T>({
                 <button
                   key={a.label}
                   type="button"
+                  disabled={a.disabled}
+                  title={a.title}
                   onClick={(e) => {
                     e.stopPropagation();
-                    a.onClick();
+                    if (!a.disabled) a.onClick();
                   }}
-                  style={rowActionButtonStyle(a.tone)}
+                  style={rowActionButtonStyle(a.tone, a.disabled)}
                 >
                   {a.label}
                 </button>
@@ -249,21 +278,24 @@ function TableRow<T>({
             {c.type === "badge" ? (
               <span style={placementBadgeStyle(cell.text)}>{cell.text}</span>
             ) : (
-              <div>
-                <div
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    fontFamily: c.type === "mono" ? "var(--font-ibm-plex-mono)" : undefined,
-                    fontSize: c.type === "mono" ? 12 : undefined,
-                    fontWeight: c.strong ? 600 : undefined,
-                    color: c.strong ? "#14181f" : undefined,
-                  }}
-                >
-                  {cell.text}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                {c.leading?.(row)}
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      fontFamily: c.type === "mono" ? "var(--font-ibm-plex-mono)" : undefined,
+                      fontSize: c.type === "mono" ? 12 : undefined,
+                      fontWeight: c.strong ? 600 : undefined,
+                      color: c.strong ? "#14181f" : undefined,
+                    }}
+                  >
+                    {cell.text}
+                  </div>
+                  {cell.sub && <div style={{ fontSize: 10.5, color: "#96a0b0", marginTop: 2 }}>{cell.sub}</div>}
                 </div>
-                {cell.sub && <div style={{ fontSize: 10.5, color: "#96a0b0", marginTop: 2 }}>{cell.sub}</div>}
               </div>
             )}
           </div>
@@ -286,7 +318,10 @@ export function PlacementTable<T>({
   pageSize,
   onPageChange,
   emptyMessage = "No records match these filters.",
+  totalCount,
 }: PlacementTableProps<T>) {
+  const serverPaginated = totalCount != null;
+
   const sorted = sort
     ? [...rows].sort((a, b) => {
         const col = columns.find((c) => c.key === sort.key);
@@ -298,18 +333,19 @@ export function PlacementTable<T>({
       })
     : rows;
 
-  const pages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const totalRows = totalCount ?? sorted.length;
+  const pages = Math.max(1, Math.ceil(totalRows / pageSize));
   const currentPage = Math.min(page, pages);
-  const slice = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const slice = serverPaginated ? sorted : sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const sampleRow = slice[0];
   const gridTemplate = columns.map((c) => `minmax(${minFor(c, sampleRow)}px,${c.width})`).join(" ");
   const minWidth = columns.reduce((a, c) => a + minFor(c, sampleRow) + 14, 40);
 
   const pageInfo =
-    sorted.length === 0
+    totalRows === 0
       ? "No records"
-      : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, sorted.length)} of ${sorted.length} records`;
+      : `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, totalRows)} of ${totalRows} records`;
 
   function pageButtonStyle(enabled: boolean): CSSProperties {
     return {

@@ -3,20 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronsLeftIcon, ChevronsRightIcon } from "@/shared/components/icons";
-import { useStudentCount } from "@/modules/students/hooks/useStudentCount";
-import { ADMIN_NAV } from "../nav";
+import { COORDINATOR_NAV } from "../nav";
 
-interface AdminSidebarProps {
+interface AcademicCoordinatorSidebarProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
 }
 
-export function AdminSidebar({ collapsed, onToggleCollapsed }: AdminSidebarProps) {
+export function AcademicCoordinatorSidebar({ collapsed, onToggleCollapsed }: AcademicCoordinatorSidebarProps) {
   const pathname = usePathname();
-  // Live roll count, not the static placeholder in nav.ts — a nav badge that
-  // disagreed with the page it links to would be the first thing to erode
-  // trust in every other number on this dashboard.
-  const studentCount = useStudentCount({});
 
   return (
     <aside
@@ -31,7 +26,7 @@ export function AdminSidebar({ collapsed, onToggleCollapsed }: AdminSidebarProps
       className="flex h-full flex-col overflow-y-auto"
     >
       <nav style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {ADMIN_NAV.map((group, groupIndex) => (
+        {COORDINATOR_NAV.map((group, groupIndex) => (
           <div key={group.label} style={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {(!collapsed || groupIndex === 0) && (
               <div
@@ -75,9 +70,9 @@ export function AdminSidebar({ collapsed, onToggleCollapsed }: AdminSidebarProps
               </div>
             )}
             {group.items.map((item) => {
-              const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+              const active =
+                item.href === "/academic-coordinator" ? pathname === "/academic-coordinator" : pathname.startsWith(item.href);
               const Icon = item.icon;
-              const badge = item.href === "/admin/students" ? studentCount.data?.toLocaleString("en-IN") : item.badge;
 
               if (item.soon) {
                 return (
@@ -85,7 +80,7 @@ export function AdminSidebar({ collapsed, onToggleCollapsed }: AdminSidebarProps
                     key={item.href}
                     type="button"
                     disabled
-                    title={`${item.label} — module planned`}
+                    title={`${item.label} — coming next`}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -141,31 +136,20 @@ export function AdminSidebar({ collapsed, onToggleCollapsed }: AdminSidebarProps
                   className="hover:bg-[#f3f6fc]"
                 >
                   <Icon style={{ width: 19, height: 19, flexShrink: 0, opacity: 0.9 }} />
-                  {!collapsed && (
-                    <>
-                      <span style={{ flex: 1 }}>{item.label}</span>
-                      {badge != null && (
-                        <span
-                          style={{
-                            fontFamily: "var(--font-ibm-plex-mono)",
-                            fontSize: 10.5,
-                            padding: "2px 8px",
-                            borderRadius: 20,
-                            background: active ? "#dbe6ff" : "#eff2f7",
-                            color: active ? "#1f4fd8" : "#77808f",
-                          }}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                    </>
-                  )}
+                  {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
                 </Link>
               );
             })}
           </div>
         ))}
       </nav>
+
+      {!collapsed && (
+        <div style={{ padding: "14px 18px", borderTop: "1px solid #eef1f6" }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: "#16224a" }}>Academic Coordinator</div>
+          <div style={{ fontSize: 11, color: "#8b95a6", marginTop: 3 }}>Academic Affairs Office</div>
+        </div>
+      )}
     </aside>
   );
 }
